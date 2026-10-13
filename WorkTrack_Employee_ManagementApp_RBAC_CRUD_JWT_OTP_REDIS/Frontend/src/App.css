@@ -1,0 +1,48 @@
+
+/* Main public layout: navbar, content and footer. */
+.public-layout {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
+  background-color: #101d34;
+}
+
+/* Allow the current page to use remaining space. */
+.public-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Full-width homepage background. */
+.home-page {
+  width: 100%;
+  min-height: calc(100vh - 124px);
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
+  background:
+    radial-gradient(
+      ellipse at 15% 30%,
+      #1e416f 0%,
+      #101d34 52%,
+      #091222 100%
+    );
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .home-page {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-page {
+    padding-bottom: 1.5rem;
+  }
+}
