@@ -126,7 +126,13 @@ const getExtraDutyStatusColor = (status) => {
   }
 };
 
-
+// Only these statuses are eligible for deletion from the manager's table.
+const DELETABLE_EXTRA_DUTY_STATUSES = [
+  "ASSIGNED",
+  "COMPLETED",
+  "EXPIRED",
+  "REJECTED",
+];
 
 const canDeleteExtraDutyAssignment = (assignment) => {
   if (!assignment) return false;
@@ -662,21 +668,38 @@ function TaskManagement() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setTaskForm(initialTaskForm);
-            setTaskFormError("");
-            setOpenCreateDialog(true);
-          }}
-          sx={{
-            flexShrink: 0,
-            whiteSpace: "nowrap",
-          }}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1}
+          sx={{ flexShrink: 0, alignItems: { xs: "stretch", sm: "center" } }}
         >
-          Create Task
-        </Button>
+          {isManager && (
+            <Button
+              variant="outlined"
+              startIcon={<AccessTime />}
+              onClick={() => {
+                setExtraDutyForm(initialExtraDutyForm);
+                setExtraDutyError("");
+                setExtraDutyOpen(true);
+              }}
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Create Extra Task
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => {
+              setTaskForm(initialTaskForm);
+              setTaskFormError("");
+              setOpenCreateDialog(true);
+            }}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            Create Task
+          </Button>
+        </Stack>
       </Box>
 
       {/* Normal task section */}
