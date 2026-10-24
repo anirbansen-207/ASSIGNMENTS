@@ -3,255 +3,196 @@ import Booking from "../models/Booking.js";
 import Payment from "../models/Payment.js";
 
 const generateTicketNumber = () => {
-  return `TKT-${Date.now()}-${Math.floor(
+  return `GB-${Date.now()}-${Math.floor(
     100000 + Math.random() * 900000,
   )}`;
 };
 
-// CREATE TICKET
+// Shared ticket data builder for customer and staff bookings.
+const getTicketDetails = (booking) => {
+  const trip = booking.tripId;
+  const customer = booking.customerId;
+
+  if (!trip || !trip.routeId || !trip.busId || !customer) {
+    const error = new Error(
+      "Customer, trip, route, or bus details are missing",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    ticketNumber: generateTicketNumber(),
+    bookingId: booking._id,
+    customerId: customer._id || customer,
+    customerName: customer.name,
+    sourceCity: trip.routeId.sourceCity,
+    destinationCity: trip.routeId.destinationCity,
+    busNumber: trip.busId.busNumber,
+    busName: trip.busId.busName,
+    seatNumbers: booking.seatNumbers,
+    travelDate: trip.travelDate,
+    departureTime: trip.departureTime,
+    arrivalTime: trip.arrivalTime,
+    amount: booking.totalAmount,
+    ticketStatus: "ACTIVE",
+  };
+};
+
+// CREATE TICKET FOR CUSTOMER AFTER SUCCESSFUL ONLINE PAYMENT
 export const createTicketService = async ({
   bookingId,
   customerId,
 }) => {
+  if (!bookingId || !customerId) {
+    const error = new Error(
+      "Booking ID and customer ID are required",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const booking = await Booking.findOne({
+    _id: bookingId,
+    customerId,
+  })
+    .populate("customerId", "name")
+    .populate({
+      path: "tripId",
+      populate: [
+        {
+          path: "routeId",
+          select: "sourceCity destinationCity",
+        },
+        {
+          path: "busId",
+          select: "busNumber busName",
+        },
+      ],
+    });
+
+  if (!booking) {
+    const error = new Error("Booking not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (booking.status !== "CONFIRMED") {
+    const error = new Error(
+      "Your booking must be confirmed before generating a ticket",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Online customer tickets require a successful payment.
+  const payment = await Payment.findOne({
+    bookingId: booking._id,
+    customerId,
+    paymentStatus: "SUCCESS",
+  });
+
+  if (!payment) {
+    const error = new Error(
+      "Successful payment is required before generating a ticket",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Return the ticket if this request is retried.
+  const existingTicket = await Ticket.findOne({
+    bookingId: booking._id,
+  });
+
+  if (existingTicket) {
+    return existingTicket;
+  }
+
+  const ticketDetails = getTicketDetails(booking);
+
   try {
-    const booking =
-      await Booking.findOne({
-        _id: bookingId,
-        customerId,
-      })
-        .populate(
-          "customerId",
-          "name email phone",
-        )
-        .populate({
-          path: "tripId",
-          populate: [
-            {
-              path: "routeId",
-              select:
-                "sourceCity destinationCity",
-            },
-            {
-              path: "busId",
-              select:
-                "busNumber busName",
-            },
-          ],
-        });
-
-    if (!booking) {
-      const error = new Error(
-        "Booking not found",
-      );
-
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (booking.status === "CANCELLED") {
-      const error = new Error(
-        "Ticket cannot be generated for a cancelled booking",
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Payment must be successful
-    const payment =
-      await Payment.findOne({
-        bookingId,
-        customerId,
-        paymentStatus: "SUCCESS",
-      });
-
-    if (!payment) {
-      const error = new Error(
-        "Successful payment is required before generating ticket",
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Check existing ticket
-    const existingTicket =
-      await Ticket.findOne({
-        bookingId,
-      });
-
-    if (existingTicket) {
-      return existingTicket;
-    }
-
-    let ticket;
-
-    try {
-      ticket = await Ticket.create({
-        ticketNumber:
-          generateTicketNumber(),
-
-        bookingId,
-        customerId,
-
-        customerName:
-          booking.customerId.name,
-
-        sourceCity:
-          booking.tripId.routeId
-            .sourceCity,
-
-        destinationCity:
-          booking.tripId.routeId
-            .destinationCity,
-
-        busNumber:
-          booking.tripId.busId
-            .busNumber,
-
-        busName:
-          booking.tripId.busId
-            .busName,
-
-        seatNumbers:
-          booking.seatNumbers,
-
-        travelDate:
-          booking.tripId.travelDate,
-
-        departureTime:
-          booking.tripId.departureTime,
-
-        arrivalTime:
-          booking.tripId.arrivalTime,
-
-        amount:
-          booking.totalAmount,
-
-        ticketStatus: "ACTIVE",
-      });
-    } catch (error) {
-      // Another request may have generated
-      // the ticket at the same time.
-      if (error.code === 11000) {
-        const existingTicket =
-          await Ticket.findOne({
-            bookingId,
-          });
-
-        if (existingTicket) {
-          return existingTicket;
-        }
-      }
-
-      throw error;
-    }
-
-    return ticket;
+    return await Ticket.create(ticketDetails);
   } catch (error) {
+    // Handle concurrent requests for the same booking.
+    if (error.code === 11000) {
+      const existingTicket = await Ticket.findOne({
+        bookingId: booking._id,
+      });
+
+      if (existingTicket) {
+        return existingTicket;
+      }
+    }
+
     throw error;
   }
 };
 
-
-// CREATE TICKET FOR BOOKING STAFF
+// CREATE TICKET FOR BOOKING STAFF'S OFFLINE BOOKING
 export const createStaffTicketService = async ({
   bookingId,
 }) => {
+  if (!bookingId) {
+    const error = new Error("Booking ID is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const booking = await Booking.findById(bookingId)
+    .populate("customerId", "name")
+    .populate({
+      path: "tripId",
+      populate: [
+        {
+          path: "routeId",
+          select: "sourceCity destinationCity",
+        },
+        {
+          path: "busId",
+          select: "busNumber busName",
+        },
+      ],
+    });
+
+  if (!booking) {
+    const error = new Error("Booking not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (booking.status !== "CONFIRMED") {
+    const error = new Error(
+      "Only confirmed bookings can receive tickets",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Offline bookings do not require a Razorpay payment record.
+  const existingTicket = await Ticket.findOne({
+    bookingId: booking._id,
+  });
+
+  if (existingTicket) {
+    return existingTicket;
+  }
+
+  const ticketDetails = getTicketDetails(booking);
+
   try {
-    // Find the booking
-    const booking = await Booking.findById(bookingId)
-      .populate("customerId", "name email phone")
-      .populate({
-        path: "tripId",
-        populate: [
-          {
-            path: "routeId",
-            select: "sourceCity destinationCity",
-          },
-          {
-            path: "busId",
-            select: "busNumber busName",
-          },
-        ],
+    return await Ticket.create(ticketDetails);
+  } catch (error) {
+    if (error.code === 11000) {
+      const existingTicket = await Ticket.findOne({
+        bookingId: booking._id,
       });
 
-    // If booking does not exist
-    if (!booking) {
-      const error = new Error("Booking not found");
-      error.statusCode = 404;
-      throw error;
+      if (existingTicket) {
+        return existingTicket;
+      }
     }
 
-    // Cannot generate ticket for cancelled booking
-    if (booking.status === "CANCELLED") {
-      const error = new Error(
-        "Ticket cannot be generated for a cancelled booking"
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Ticket can only be generated for confirmed booking
-    if (booking.status !== "CONFIRMED") {
-      const error = new Error(
-        "Ticket can only be generated for a confirmed booking"
-      );
-
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Check whether ticket already exists
-    const existingTicket = await Ticket.findOne({
-      bookingId,
-    });
-
-    if (existingTicket) {
-      return existingTicket;
-    }
-
-    // Create ticket
-    const ticket = await Ticket.create({
-      ticketNumber: generateTicketNumber(),
-
-      bookingId,
-
-      customerId: booking.customerId._id,
-
-      customerName: booking.customerId.name,
-
-      sourceCity:
-        booking.tripId.routeId.sourceCity,
-
-      destinationCity:
-        booking.tripId.routeId.destinationCity,
-
-      busNumber:
-        booking.tripId.busId.busNumber,
-
-      busName:
-        booking.tripId.busId.busName,
-
-      seatNumbers: booking.seatNumbers,
-
-      travelDate:
-        booking.tripId.travelDate,
-
-      departureTime:
-        booking.tripId.departureTime,
-
-      arrivalTime:
-        booking.tripId.arrivalTime,
-
-      amount: booking.totalAmount,
-
-      ticketStatus: "ACTIVE",
-    });
-
-    return ticket;
-  } catch (error) {
     throw error;
   }
 };

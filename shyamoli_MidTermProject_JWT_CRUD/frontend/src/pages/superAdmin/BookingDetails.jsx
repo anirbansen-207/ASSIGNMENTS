@@ -4,16 +4,41 @@ import {
   Button,
   Card,
   CardContent,
+  Stack,
   Typography,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { getSingleBooking } from "../../services/adminBookingService";
 
+const formatDate = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "N/A"
+    : date.toLocaleDateString();
+};
+
+const formatTime = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "N/A"
+    : date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};
+
 const BookingDetails = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
 
+  // Fetch the selected booking using its ID.
   const {
     data: booking,
     isLoading,
@@ -22,6 +47,7 @@ const BookingDetails = () => {
   } = useQuery({
     queryKey: ["booking", bookingId],
     queryFn: () => getSingleBooking(bookingId),
+    enabled: Boolean(bookingId),
   });
 
   if (isLoading) {
@@ -36,6 +62,15 @@ const BookingDetails = () => {
     );
   }
 
+  if (!booking) {
+    return <Typography>Booking not found.</Typography>;
+  }
+
+  const trip = booking.tripId;
+  const route = trip?.routeId;
+  const bus = trip?.busId;
+  const driver = trip?.driverId;
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -48,38 +83,85 @@ const BookingDetails = () => {
             Booking ID: {booking._id}
           </Typography>
 
-          <Typography sx={{ mb: 1 }}>
-            <strong>Customer:</strong>{" "}
-            {booking.customerId?.name || "N/A"}
-          </Typography>
+          <Stack spacing={1}>
+            <Typography>
+              <strong>Customer:</strong>{" "}
+              {booking.customerId?.name || "N/A"}
+            </Typography>
 
-          <Typography sx={{ mb: 1 }}>
-            <strong>Email:</strong>{" "}
-            {booking.customerId?.email || "N/A"}
-          </Typography>
+            <Typography>
+              <strong>Email:</strong>{" "}
+              {booking.customerId?.email || "N/A"}
+            </Typography>
 
-          <Typography sx={{ mb: 1 }}>
-            <strong>Trip:</strong>{" "}
-            {booking.tripId?.routeId?.sourceCity || "N/A"} →{" "}
-            {booking.tripId?.routeId?.destinationCity || "N/A"}
-          </Typography>
+            <Typography>
+              <strong>Route:</strong>{" "}
+              {route?.sourceCity || "N/A"} →{" "}
+              {route?.destinationCity || "N/A"}
+            </Typography>
 
-          <Typography sx={{ mb: 1 }}>
-            <strong>Seats:</strong>{" "}
-            {booking.seatNumbers?.join(", ") || "N/A"}
-          </Typography>
+            <Typography>
+              <strong>Bus Name:</strong>{" "}
+              {bus?.busName || "N/A"}
+            </Typography>
 
-          <Typography sx={{ mb: 1 }}>
-            <strong>Ticket Price:</strong>{" "}
-            ₹{booking.ticketPrice ?? "N/A"}
-          </Typography>
+            <Typography>
+              <strong>Bus Number:</strong>{" "}
+              {bus?.busNumber || "N/A"}
+            </Typography>
 
-          <Typography sx={{ mb: 2 }}>
-            <strong>Status:</strong>{" "}
-            {booking.status || "N/A"}
-          </Typography>
+            <Typography>
+              <strong>Bus Type:</strong>{" "}
+              {bus?.busType || "N/A"}
+            </Typography>
+
+            <Typography>
+              <strong>Travel Date:</strong>{" "}
+              {formatDate(trip?.travelDate)}
+            </Typography>
+
+            <Typography>
+              <strong>Departure:</strong>{" "}
+              {formatTime(trip?.departureTime)}
+            </Typography>
+
+            <Typography>
+              <strong>Arrival:</strong>{" "}
+              {formatTime(trip?.arrivalTime)}
+            </Typography>
+
+            <Typography>
+              <strong>Driver:</strong>{" "}
+              {driver?.name || "N/A"}
+            </Typography>
+
+            <Typography>
+              <strong>Seats:</strong>{" "}
+              {booking.seatNumbers?.join(", ") || "N/A"}
+            </Typography>
+
+            <Typography>
+              <strong>Ticket Price:</strong>{" "}
+              {booking.ticketPrice != null
+                ? `₹${booking.ticketPrice}`
+                : "N/A"}
+            </Typography>
+
+            <Typography>
+              <strong>Total Amount:</strong>{" "}
+              {booking.totalAmount != null
+                ? `₹${booking.totalAmount}`
+                : "N/A"}
+            </Typography>
+
+            <Typography>
+              <strong>Status:</strong>{" "}
+              {booking.status || "N/A"}
+            </Typography>
+          </Stack>
 
           <Button
+            sx={{ mt: 2 }}
             variant="outlined"
             onClick={() => navigate("/super-admin/bookings")}
           >

@@ -64,6 +64,7 @@ router.patch(
   "/cancel_booking/:bookingId",
   authMiddleware,
   roleMiddleware([
+    ROLES.SUPER_ADMIN,
     ROLES.CUSTOMER,
     ROLES.BOOKING_STAFF,
   ]),
@@ -76,6 +77,7 @@ router.get(
   "/available_seats/:tripId",
   authMiddleware,
   roleMiddleware([
+    ROLES.SUPER_ADMIN,
     ROLES.CUSTOMER,
     ROLES.BOOKING_STAFF,
   ]),

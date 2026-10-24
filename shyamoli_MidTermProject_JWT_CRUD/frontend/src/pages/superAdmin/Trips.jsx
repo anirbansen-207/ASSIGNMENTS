@@ -3,6 +3,10 @@ import {
   Box,
   Button,
   Paper,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -12,17 +16,20 @@ import {
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import {
   getAllTrips,
   updateTripStatus,
   cancelTrip,
+  deleteTrip,
 } from "../../services/tripService";
 
 const Trips = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Get all trips
   const {
@@ -71,6 +78,22 @@ const Trips = () => {
     },
   });
 
+  // Delete completed/cancelled trips. The backend also enforces this rule.
+  const deleteMutation = useMutation({
+    mutationFn: deleteTrip,
+    onSuccess: () => {
+      toast.success("Trip removed from Trip Management");
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete trip");
+    },
+  });
+
+  const filteredTrips = (trips || []).filter((trip) =>
+    statusFilter === "ALL" ? true : trip.tripStatus === statusFilter,
+  );
+
   // Loading
   if (isLoading) {
     return <Typography>Loading trips...</Typography>;
@@ -106,6 +129,26 @@ const Trips = () => {
         </Button>
       </Box>
 
+      {/* Filter trips by their current status */}
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <FormControl size="small" sx={{ minWidth: 220 }}>
+          <InputLabel id="trip-status-filter-label">Filter by status</InputLabel>
+          <Select
+            labelId="trip-status-filter-label"
+            id="trip-status-filter"
+            value={statusFilter}
+            label="Filter by status"
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <MenuItem value="ALL">All Trips</MenuItem>
+            <MenuItem value="SCHEDULED">Scheduled</MenuItem>
+            <MenuItem value="ONGOING">Ongoing</MenuItem>
+            <MenuItem value="COMPLETED">Completed</MenuItem>
+            <MenuItem value="CANCELLED">Cancelled</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+
       {/* Trip Table */}
       <TableContainer component={Paper}>
         <Table>
@@ -123,14 +166,14 @@ const Trips = () => {
           </TableHead>
 
           <TableBody>
-            {trips?.length === 0 ? (
+            {filteredTrips.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center">
-                  No trips found.
+                  No trips found for this status.
                 </TableCell>
               </TableRow>
             ) : (
-              trips?.map((trip) => (
+              filteredTrips.map((trip) => (
                 <TableRow key={trip._id}>
                   {/* Route */}
                   <TableCell>
@@ -228,6 +271,26 @@ const Trips = () => {
                         }}
                       >
                         Cancel
+                      </Button>
+                    )}
+
+                    {(trip.tripStatus === "COMPLETED" ||
+                      trip.tripStatus === "CANCELLED") && (
+                      <Button
+                        size="small"
+                        color="error"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Remove this ${trip.tripStatus.toLowerCase()} trip from Trip Management? Its booking and ticket history will be retained.`,
+                            )
+                          ) {
+                            deleteMutation.mutate(trip._id);
+                          }
+                        }}
+                      >
+                        Delete
                       </Button>
                     )}
                   </TableCell>

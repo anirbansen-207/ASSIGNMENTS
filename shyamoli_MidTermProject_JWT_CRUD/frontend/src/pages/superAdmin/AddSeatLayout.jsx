@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -5,26 +6,20 @@ import {
   Button,
   Card,
   CardContent,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
   Typography,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { getSingleBus } from "../../services/busService";
 import { createSeatLayout } from "../../services/seatLayoutService";
-import { toast } from "sonner";
+import BusSeatMap from "../../components/BusSeatMap";
 
 const AddSeatLayout = () => {
   const { busId } = useParams();
   const navigate = useNavigate();
-
   const [seats, setSeats] = useState([]);
 
-  // Get bus details
   const {
     data: bus,
     isLoading,
@@ -33,59 +28,66 @@ const AddSeatLayout = () => {
   } = useQuery({
     queryKey: ["bus", busId],
     queryFn: () => getSingleBus(busId),
-    enabled: !!busId,
+    enabled: Boolean(busId),
   });
 
-  // Create seat layout
-  const mutation = useMutation({
-    mutationFn: createSeatLayout,
-
-    onSuccess: () => {
-      toast.success("Seat layout created successfully");
-      navigate("/super-admin/seat-layout");
-    },
-
-    onError: (error) => {
-      toast.error(
-        error?.response?.data?.message || "Failed to create seat layout"
-      );
-    },
-  });
-
-  // Generate seats according to bus total seats
   useEffect(() => {
-    if (bus) {
-      const generatedSeats = Array.from(
-        { length: bus.totalSeats },
-        (_, index) => ({
-          seatNumber: String(index + 1),
-          seatType: "regular",
-        })
-      );
+    if (!bus) return;
 
-      setSeats(generatedSeats);
-    }
+    const isSleeper = bus.busType === "SLEEPER";
+
+    const generatedSeats = Array.from(
+      { length: Number(bus.totalSeats) || 0 },
+      (_, index) => {
+        const berthNumber = Math.floor(index / 2) + 1;
+        const isUpper = index % 2 === 0;
+
+        return {
+          seatNumber: isSleeper
+            ? `${berthNumber}${isUpper ? "U" : "L"}`
+            : String(index + 1),
+          seatType: "regular",
+          berthLevel: isSleeper
+            ? isUpper
+              ? "upper"
+              : "lower"
+            : null,
+        };
+      },
+    );
+
+    setSeats(generatedSeats);
   }, [bus]);
 
-  // Change seat type
-  const handleSeatTypeChange = (index, seatType) => {
-    setSeats((previousSeats) =>
-      previousSeats.map((seat, seatIndex) =>
-        seatIndex === index
+  const mutation = useMutation({
+    mutationFn: createSeatLayout,
+    onSuccess: () => {
+      toast.success("Seat layout created successfully");
+
+      // Correct route: router.jsx defines "seat-layouts".
+      navigate("/super-admin/seat-layouts");
+    },
+    onError: (error) => {
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to create seat layout",
+      );
+    },
+  });
+
+  const handleSeatTypeChange = (seatNumber, seatType) => {
+    setSeats((previous) =>
+      previous.map((seat) =>
+        seat.seatNumber === seatNumber
           ? { ...seat, seatType }
-          : seat
-      )
+          : seat,
+      ),
     );
   };
 
-  // Submit seat layout
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    mutation.mutate({
-      busId,
-      seats,
-    });
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    mutation.mutate({ busId, seats });
   };
 
   if (isLoading) {
@@ -95,108 +97,68 @@ const AddSeatLayout = () => {
   if (isError) {
     return (
       <Typography color="error">
-        Failed to load bus: {error.message}
+        Failed to load bus: {error?.message || "Unknown error"}
       </Typography>
     );
   }
 
+  if (!bus) {
+    return <Typography color="error">Bus not found.</Typography>;
+  }
+
   return (
-    <Box>
+    <Box sx={{ pb: 4 }}>
       <Typography variant="h4" gutterBottom>
         Create Seat Layout
       </Typography>
 
-      {/* Bus Information */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6">
-            {bus.busName}
-          </Typography>
-
-          <Typography>
-            <strong>Bus Number:</strong> {bus.busNumber}
-          </Typography>
-
-          <Typography>
-            <strong>Total Seats:</strong> {bus.totalSeats}
-          </Typography>
-
-          <Typography>
-            <strong>Ticket Price:</strong> ₹{bus.ticketPrice}
-          </Typography>
+          <Typography variant="h6">{bus.busName}</Typography>
+          <Typography>Bus Number: {bus.busNumber}</Typography>
+          <Typography>Bus Type: {bus.busType}</Typography>
+          <Typography>Total Seats/Berths: {bus.totalSeats}</Typography>
+          <Typography>Ticket Price: ₹{bus.ticketPrice}</Typography>
         </CardContent>
       </Card>
 
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Seat Configuration
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        mb={2}
+      >
+        {bus.busType === "SLEEPER"
+          ? "Each sleeper berth has an independent upper or lower position."
+          : "Each row has two seats on either side of the aisle, with four seats at the rear."}
       </Typography>
 
       <Box component="form" onSubmit={handleSubmit}>
-        <Grid container spacing={2}>
-          {seats.map((seat, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={seat.seatNumber}>
-              <Card>
-                <CardContent>
-                  <Typography sx={{ mb: 2 }}>
-                    <strong>Seat {seat.seatNumber}</strong>
-                  </Typography>
+        <BusSeatMap
+          seats={seats}
+          busType={bus.busType}
+          admin
+          onSeatTypeChange={handleSeatTypeChange}
+        />
 
-                  <FormControl fullWidth>
-                    <InputLabel>Seat Type</InputLabel>
+        <Box sx={{ display: "flex", gap: 1.5, mt: 3 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={mutation.isPending || seats.length === 0}
+          >
+            {mutation.isPending
+              ? "Creating..."
+              : "Create Seat Layout"}
+          </Button>
 
-                    <Select
-                      value={seat.seatType}
-                      label="Seat Type"
-                      onChange={(e) =>
-                        handleSeatTypeChange(
-                          index,
-                          e.target.value
-                        )
-                      }
-                    >
-                      <MenuItem value="regular">
-                        Regular
-                      </MenuItem>
-
-                      <MenuItem value="vip">
-                        VIP
-                      </MenuItem>
-
-                      <MenuItem value="ladies">
-                        Ladies
-                      </MenuItem>
-
-                      <MenuItem value="reserved">
-                        Reserved
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
-        <Button
-          type="submit"
-          variant="contained"
-          sx={{ mt: 3 }}
-          disabled={mutation.isPending}
-        >
-          {mutation.isPending
-            ? "Creating..."
-            : "Create Seat Layout"}
-        </Button>
-
-        <Button
-          variant="outlined"
-          sx={{ mt: 3, ml: 2 }}
-          onClick={() =>
-            navigate("/super-admin/seat-layout")
-          }
-        >
-          Cancel
-        </Button>
+          <Button
+            type="button"
+            variant="outlined"
+            onClick={() => navigate("/super-admin/seat-layouts")}
+          >
+            Cancel
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

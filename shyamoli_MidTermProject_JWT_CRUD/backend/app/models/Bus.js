@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const busSchema = new mongoose.Schema(
@@ -9,9 +10,12 @@ const busSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // GreenBus is the fixed company name for every bus.
     busName: {
       type: String,
       required: true,
+      default: "GreenBus",
+      enum: ["GreenBus"],
       trim: true,
     },
 
@@ -32,7 +36,7 @@ const busSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    
+
     ticketPrice: {
       type: Number,
       required: true,

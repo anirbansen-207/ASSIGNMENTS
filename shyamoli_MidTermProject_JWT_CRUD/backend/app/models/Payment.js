@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
@@ -27,20 +28,35 @@ const paymentSchema = new mongoose.Schema(
         "UPI",
         "NET_BANKING",
         "CASH",
+        "RAZORPAY",
       ],
       required: true,
     },
 
     paymentStatus: {
       type: String,
-      enum: [
-        "PENDING",
-        "SUCCESS",
-        "FAILED",
-      ],
+      enum: ["PENDING", "SUCCESS", "FAILED"],
       default: "PENDING",
     },
 
+    // Razorpay order created by the backend.
+    razorpayOrderId: {
+      type: String,
+      sparse: true,
+    },
+
+    // Payment ID returned after the customer pays.
+    razorpayPaymentId: {
+      type: String,
+      sparse: true,
+    },
+
+    // Signature returned by Razorpay Checkout.
+    razorpaySignature: {
+      type: String,
+    },
+
+    // Kept for compatibility with the existing model.
     transactionId: {
       type: String,
       unique: true,
@@ -52,7 +68,7 @@ const paymentSchema = new mongoose.Schema(
   },
 );
 
-// One successful payment per booking
+// Only one successful payment per booking.
 paymentSchema.index(
   { bookingId: 1 },
   {
@@ -63,10 +79,6 @@ paymentSchema.index(
   },
 );
 
-const Payment =
-  mongoose.model(
-    "Payment",
-    paymentSchema,
-  );
+const Payment = mongoose.model("Payment", paymentSchema);
 
 export default Payment;

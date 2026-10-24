@@ -22,7 +22,8 @@
     "joi": "^18.2.5",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.3",
-    "nodemailer": "^9.0.5",
-    "nodemon": "^3.1.14"
+    "nodemailer": "^10.2.1",
+    "nodemon": "^3.1.14",
+    "razorpay": "^2.9.8"
   }
 }

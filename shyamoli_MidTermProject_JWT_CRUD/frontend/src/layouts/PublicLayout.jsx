@@ -261,19 +261,42 @@ const PublicLayout = () => {
           {/* LOGO */}
           {/* ================================================= */}
 
-          <Typography
-            variant="h5"
+          <Box
             onClick={() => navigate("/")}
             sx={{
               flexGrow: 1,
               cursor: "pointer",
-              fontWeight: 500,
-              color: "#ffffff",
-              letterSpacing: "0.2px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              lineHeight: 1.1,
             }}
           >
-            Shamolly Bus Service
-          </Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                fontWeight: 800,
+                color: "#ffffff",
+                letterSpacing: "0.2px",
+                lineHeight: 1.1,
+              }}
+            >
+              <Box component="span" sx={{ color: "#22c55e" }}>Green</Box>Bus
+            </Typography>
+            <Typography
+              component="span"
+              sx={{
+                mt: 0.25,
+                fontSize: { xs: "0.65rem", sm: "0.72rem" },
+                fontWeight: 600,
+                color: "#fbbf24",
+                letterSpacing: "0.25px",
+              }}
+            >
+              Bus management Service
+            </Typography>
+          </Box>
 
           {/* ================================================= */}
           {/* NAVIGATION */}
@@ -623,92 +646,36 @@ const PublicLayout = () => {
               <Typography
                 variant="h6"
                 sx={{
-                  fontWeight: 600,
-                  mb: 1,
+                  fontWeight: 800,
+                  mb: 0.25,
+                  lineHeight: 1.1,
                 }}
               >
-                Shamolly Bus Service
+                <Box component="span" sx={{ color: "#22c55e" }}>Green</Box>Bus
               </Typography>
 
               <Typography
                 sx={{
-                  color: "#aeb9cc",
-                  fontSize: 14,
+                  color: "#fbbf24",
+                  fontSize: 12,
+                  fontWeight: 600,
                 }}
               >
-                Safe and convenient bus booking management.
+                Bus management Service
               </Typography>
             </Box>
 
-            {/* FOOTER LINKS */}
-
-            <Box
+            {/* DESIGNER CREDIT */}
+            <Typography
               sx={{
-                display: "flex",
-                gap: 3,
-                flexWrap: "wrap",
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: 600,
+                alignSelf: { xs: "flex-start", md: "center" },
               }}
             >
-              <Typography
-                onClick={() => navigate("/")}
-                sx={{
-                  cursor: "pointer",
-                  fontSize: 14,
-
-                  "&:hover": {
-                    color: "#ffb000",
-                  },
-                }}
-              >
-                HOME
-              </Typography>
-
-              <Typography
-                onClick={() => navigate("/about")}
-                sx={{
-                  cursor: "pointer",
-                  fontSize: 14,
-
-                  "&:hover": {
-                    color: "#ffb000",
-                  },
-                }}
-              >
-                ABOUT US
-              </Typography>
-
-              {user && (
-                <Typography
-                  onClick={handleDashboard}
-                  sx={{
-                    cursor: "pointer",
-                    fontSize: 14,
-
-                    "&:hover": {
-                      color: "#ffb000",
-                    },
-                  }}
-                >
-                  DASHBOARD
-                </Typography>
-              )}
-
-              {!user && (
-                <Typography
-                  onClick={() => navigate("/login")}
-                  sx={{
-                    cursor: "pointer",
-                    fontSize: 14,
-
-                    "&:hover": {
-                      color: "#ffb000",
-                    },
-                  }}
-                >
-                  LOGIN
-                </Typography>
-              )}
-            </Box>
+              Designed By: Anirban Sen
+            </Typography>
           </Box>
 
           {/* ================================================= */}
@@ -730,8 +697,7 @@ const PublicLayout = () => {
                 fontSize: 13,
               }}
             >
-              © {new Date().getFullYear()} Shamolly Bus
-              Service. All rights reserved.
+              Designed By: Anirban Sen
             </Typography>
           </Box>
         </Box>

@@ -56,3 +56,10 @@ export const getCompletedTrips = async () => {
 
   return response.data.data;
 };
+
+// Remove a completed or cancelled trip from the active trip list.
+export const deleteTrip = async (tripId) => {
+  const response = await axiosInstance.delete(`/api/trip/delete_trip/${tripId}`);
+
+  return response.data.data;
+};

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,12 +27,12 @@ import {
 } from "@mui/icons-material";
 
 import { registerCustomer } from "../../services/authService";
+import busHero from "../../assets/bus-hero.png";
 
 const Register = () => {
   const navigate = useNavigate();
 
-  // ================= FORM DATA =================
-
+  // Form data
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,16 +40,12 @@ const Register = () => {
     password: "",
   });
 
-  // ================= STATES =================
-
+  // UI states
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState("");
 
-  // ================= HANDLE INPUT =================
-
+  // Handle form input changes
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -58,14 +55,11 @@ const Register = () => {
     }));
   };
 
-  // ================= REGISTER =================
-
+  // Register customer and navigate to OTP verification
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     setError("");
 
-    // Basic frontend validation
     if (
       !formData.name.trim() ||
       !formData.email.trim() ||
@@ -79,11 +73,8 @@ const Register = () => {
     try {
       setLoading(true);
 
-      // Register customer
       await registerCustomer(formData);
 
-      // After successful registration,
-      // go to OTP verification page
       navigate("/verify-otp", {
         state: {
           email: formData.email,
@@ -102,121 +93,148 @@ const Register = () => {
   return (
     <Box
       sx={{
+        // Use the same bus background as the Login page
         minHeight: "calc(100vh - 82px)",
-
-        background:
-          "linear-gradient(135deg, #f5f7fb 0%, #e9eef7 100%)",
-
+        position: "relative",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        overflow: "hidden",
+        py: { xs: 4, md: 6 },
+        px: 2,
 
-        py: 6,
+        backgroundImage: `url(${busHero})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+
+        // Dark overlay improves contrast and matches GreenBus branding
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(135deg, rgba(5,18,42,0.93) 0%, rgba(5,18,42,0.78) 55%, rgba(5,18,42,0.62) 100%)",
+          zIndex: 0,
+        },
       }}
     >
-      <Container maxWidth="sm">
+      <Container
+        maxWidth="sm"
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         <Card
-          elevation={8}
+          elevation={16}
           sx={{
+            width: "100%",
+            maxWidth: 500,
             borderRadius: 4,
             overflow: "hidden",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 24px 65px rgba(0, 0, 0, 0.3)",
+            border: "1px solid rgba(255,255,255,0.6)",
           }}
         >
-          {/* ================================================= */}
-          {/* TOP SECTION */}
-          {/* ================================================= */}
-
+          {/* Registration header */}
           <Box
             sx={{
-              backgroundColor: "#07152f",
+              background:
+                "linear-gradient(135deg, #07152f 0%, #102b50 100%)",
               color: "white",
-
               textAlign: "center",
-
               px: 3,
-              py: 4,
+              py: { xs: 3.5, md: 4 },
+              position: "relative",
+              overflow: "hidden",
+
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                width: 180,
+                height: 180,
+                borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.08)",
+                top: -100,
+                right: -50,
+              },
+
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                width: 130,
+                height: 130,
+                borderRadius: "50%",
+                backgroundColor: "rgba(34,197,94,0.06)",
+                bottom: -80,
+                left: -35,
+              },
             }}
           >
-            {/* Person Icon */}
-
             <Box
               sx={{
                 width: 64,
                 height: 64,
-
                 borderRadius: "50%",
-
                 backgroundColor: "#263653",
-
+                border: "1px solid rgba(255,255,255,0.12)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-
                 mx: "auto",
                 mb: 2,
+                position: "relative",
+                zIndex: 1,
               }}
             >
-              <Person
-                sx={{
-                  fontSize: 34,
-                }}
-              />
+              <Person sx={{ fontSize: 34, color: "#ffffff" }} />
             </Box>
-
-            {/* Heading */}
 
             <Typography
               variant="h4"
-              fontWeight={700}
+              component="h1"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: "1.8rem", sm: "2rem" },
+                position: "relative",
+                zIndex: 1,
+              }}
             >
               Create Account
             </Typography>
 
-            {/* Subtitle */}
-
             <Typography
               sx={{
                 mt: 1,
-                color: "#b8c2d6",
+                color: "#c5d2e5",
+                fontSize: "0.95rem",
+                position: "relative",
+                zIndex: 1,
               }}
             >
-              Create your Shamolly Bus Service account
+              Create your GreenBus account
             </Typography>
           </Box>
 
-          {/* ================================================= */}
-          {/* FORM SECTION */}
-          {/* ================================================= */}
-
+          {/* Registration form */}
           <CardContent
             sx={{
-              p: {
-                xs: 3,
-                md: 4,
-              },
+              p: { xs: 2.5, sm: 4 },
+              backgroundColor: "#ffffff",
             }}
           >
-            {/* Error */}
-
             {error && (
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 3,
-                }}
-              >
+              <Alert severity="error" sx={{ mb: 2.5 }}>
                 {error}
               </Alert>
             )}
 
-            <Box
-              component="form"
-              onSubmit={handleSubmit}
-            >
-              {/* ================================================= */}
-              {/* NAME */}
-              {/* ================================================= */}
-
+            <Box component="form" onSubmit={handleSubmit}>
+              {/* Full name */}
               <TextField
                 fullWidth
                 label="Full Name"
@@ -226,6 +244,7 @@ const Register = () => {
                 margin="normal"
                 placeholder="Enter your full name"
                 autoComplete="name"
+                required
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -235,10 +254,7 @@ const Register = () => {
                 }}
               />
 
-              {/* ================================================= */}
-              {/* EMAIL */}
-              {/* ================================================= */}
-
+              {/* Email address */}
               <TextField
                 fullWidth
                 label="Email Address"
@@ -249,6 +265,7 @@ const Register = () => {
                 margin="normal"
                 placeholder="Enter your email"
                 autoComplete="email"
+                required
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -258,19 +275,18 @@ const Register = () => {
                 }}
               />
 
-              {/* ================================================= */}
-              {/* PHONE */}
-              {/* ================================================= */}
-
+              {/* Phone number */}
               <TextField
                 fullWidth
                 label="Phone Number"
                 name="phone"
+                type="tel"
                 value={formData.phone}
                 onChange={handleChange}
                 margin="normal"
                 placeholder="Enter your phone number"
                 autoComplete="tel"
+                required
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -280,39 +296,35 @@ const Register = () => {
                 }}
               />
 
-              {/* ================================================= */}
-              {/* PASSWORD */}
-              {/* ================================================= */}
-
+              {/* Password */}
               <TextField
                 fullWidth
                 label="Password"
                 name="password"
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
+                type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange}
                 margin="normal"
                 placeholder="Create a password"
                 autoComplete="new-password"
+                required
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <LockOutlined />
                     </InputAdornment>
                   ),
-
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
+                        type="button"
+                        aria-label={
+                          showPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
                         onClick={() =>
-                          setShowPassword(
-                            (previous) =>
-                              !previous
-                          )
+                          setShowPassword((previous) => !previous)
                         }
                         edge="end"
                       >
@@ -327,10 +339,7 @@ const Register = () => {
                 }}
               />
 
-              {/* ================================================= */}
-              {/* REGISTER BUTTON */}
-              {/* ================================================= */}
-
+              {/* Register button */}
               <Button
                 type="submit"
                 fullWidth
@@ -339,56 +348,47 @@ const Register = () => {
                 sx={{
                   mt: 3,
                   py: 1.5,
-
                   borderRadius: 2,
-
                   backgroundColor: "#07152f",
-
-                  fontSize: 16,
-                  fontWeight: 600,
-
+                  fontSize: 15,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  boxShadow: "0 4px 10px rgba(7,21,47,0.18)",
                   "&:hover": {
                     backgroundColor: "#10254b",
+                    boxShadow: "0 6px 16px rgba(7,21,47,0.25)",
+                  },
+                  "&.Mui-disabled": {
+                    backgroundColor: "#9aa6b8",
+                    color: "#ffffff",
                   },
                 }}
               >
-                {loading
-                  ? "Creating Account..."
-                  : "Create Account"}
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
 
-              {/* ================================================= */}
-              {/* LOGIN DIVIDER */}
-              {/* ================================================= */}
-
-              <Divider
-                sx={{
-                  my: 3,
-                }}
-              >
-                Already have an account?
+              {/* Login divider */}
+              <Divider sx={{ my: 3 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#64748b", px: 0.5 }}
+                >
+                  Already have an account?
+                </Typography>
               </Divider>
 
-              {/* ================================================= */}
-              {/* LOGIN BUTTON */}
-              {/* ================================================= */}
-
+              {/* Login button */}
               <Button
                 fullWidth
                 variant="outlined"
-                onClick={() =>
-                  navigate("/login")
-                }
+                onClick={() => navigate("/login")}
                 sx={{
                   py: 1.3,
-
                   borderRadius: 2,
-
                   borderColor: "#07152f",
                   color: "#07152f",
-
-                  fontWeight: 600,
-
+                  fontWeight: 700,
+                  textTransform: "uppercase",
                   "&:hover": {
                     borderColor: "#07152f",
                     backgroundColor: "#f2f5fa",
@@ -398,17 +398,19 @@ const Register = () => {
                 Login
               </Button>
 
-              {/* ================================================= */}
-              {/* BACK TO HOME */}
-              {/* ================================================= */}
-
+              {/* Back to home */}
               <Button
                 fullWidth
                 startIcon={<ArrowBack />}
                 onClick={() => navigate("/")}
                 sx={{
                   mt: 1,
+                  py: 1,
                   color: "#526079",
+                  textTransform: "none",
+                  "&:hover": {
+                    backgroundColor: "#f4f7fb",
+                  },
                 }}
               >
                 Back to Home

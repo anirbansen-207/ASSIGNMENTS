@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import Booking from "../models/Booking.js";
 import Trip from "../models/Trip.js";
 import Ticket from "../models/TicketGeneration.js";
+import mongoose from "mongoose";
 
 
 // VIEW OWN PROFILE
@@ -110,84 +111,109 @@ export const cancelBookingService = async (
   customerId,
   bookingId,
 ) => {
-  try {
-    const booking = await Booking.findOne({
-      _id: bookingId,
-      customerId,
-    });
+  const booking = await Booking.findOne({
+    _id: bookingId,
+    customerId,
+  });
 
-    if (!booking) {
-      const error = new Error("Booking not found");
-      error.statusCode = 404;
-      throw error;
-    }
+  if (!booking) {
+    const error = new Error("Booking not found");
+    error.statusCode = 404;
+    throw error;
+  }
 
-    if (booking.status === "CANCELLED") {
-      const error = new Error("Booking is already cancelled");
-      error.statusCode = 400;
-      throw error;
-    }
+  if (booking.status === "CANCELLED") {
+    const error = new Error("Booking is already cancelled");
+    error.statusCode = 400;
+    throw error;
+  }
 
-    const trip = await Trip.findById(booking.tripId);
+  if (!["PENDING_PAYMENT", "CONFIRMED"].includes(booking.status)) {
+    const error = new Error("This booking cannot be cancelled");
+    error.statusCode = 400;
+    throw error;
+  }
 
-    if (!trip) {
-      const error = new Error("Trip not found");
-      error.statusCode = 404;
-      throw error;
-    }
+  const trip = await Trip.findById(booking.tripId);
 
-    if (
-      trip.tripStatus === "ONGOING" ||
-      trip.tripStatus === "COMPLETED" ||
-      trip.tripStatus === "CANCELLED"
-    ) {
-      const error = new Error(
-        "Booking cannot be cancelled at this stage",
-      );
-      error.statusCode = 400;
-      throw error;
-    }
+  if (!trip) {
+    const error = new Error("Trip not found");
+    error.statusCode = 404;
+    throw error;
+  }
 
-    booking.status = "CANCELLED";
-    await booking.save();
+  if (
+    trip.tripStatus === "ONGOING" ||
+    trip.tripStatus === "COMPLETED" ||
+    trip.tripStatus === "CANCELLED"
+  ) {
+    const error = new Error(
+      "Booking cannot be cancelled at this stage",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
 
-    // Cancel ticket if already generated
-    await Ticket.findOneAndUpdate(
-      {
-        bookingId: booking._id,
-        ticketStatus: "ACTIVE",
-      },
-      {
+  booking.status = "CANCELLED";
+  booking.expiresAt = null;
+
+  await booking.save();
+
+  // Cancel an existing active ticket, if one exists.
+  await Ticket.findOneAndUpdate(
+    {
+      bookingId: booking._id,
+      ticketStatus: "ACTIVE",
+    },
+    {
+      $set: {
         ticketStatus: "CANCELLED",
       },
-    );
+    },
+  );
 
-    return booking;
-  } catch (error) {
-    throw error;
-  }
+  return booking;
 };
 
-
-// VIEW TICKET
-export const viewTicketService = async (
-  customerId,
-  bookingId,
-) => {
-  try {
-    const ticket = await Ticket.findOne({
-      bookingId,
-      customerId,
-    });
-
-    if (!ticket) {
-      const error = new Error("Ticket not found");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return ticket;
-  } catch (error) {
+// VIEW TICKET FOR THE LOGGED-IN CUSTOMER
+export const viewTicketService = async (customerId, bookingId) => {
+  if (
+    !mongoose.Types.ObjectId.isValid(bookingId) ||
+    !mongoose.Types.ObjectId.isValid(customerId)
+  ) {
+    const error = new Error("Invalid booking ID or customer ID");
+    error.statusCode = 400;
     throw error;
   }
+
+  // First confirm that this booking belongs to this customer.
+  const booking = await Booking.findOne({
+    _id: bookingId,
+    customerId,
+  }).select("_id status");
+
+  if (!booking) {
+    const error = new Error("Booking not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Look for the ticket associated with this booking and customer.
+  const ticket = await Ticket.findOne({
+    bookingId: booking._id,
+    customerId,
+  });
+
+  if (!ticket) {
+    const error = new Error(
+      booking.status === "CONFIRMED"
+        ? "Ticket has not been generated for this booking yet"
+        : "No ticket exists for this booking",
+    );
+
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return ticket;
 };

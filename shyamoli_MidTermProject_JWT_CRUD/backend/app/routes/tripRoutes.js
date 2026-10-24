@@ -8,6 +8,7 @@ import {
   updateTripStatusController,
   cancelTripController,
   getCompletedTripsController,
+  deleteTripController,
 } from "../controllers/tripController.js";
 
 import { authMiddleware } from "../middlewares/authMiddleware.js";
@@ -87,6 +88,14 @@ router.patch(
   authMiddleware,
   roleMiddleware([ROLES.SUPER_ADMIN]),
   cancelTripController,
+);
+
+// DELETE COMPLETED OR CANCELLED TRIP
+router.delete(
+  "/delete_trip/:tripId",
+  authMiddleware,
+  roleMiddleware([ROLES.SUPER_ADMIN]),
+  deleteTripController,
 );
 
 // COMPLETED TRIPS

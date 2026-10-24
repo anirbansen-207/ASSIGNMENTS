@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
@@ -21,11 +22,8 @@ const SuperAdminLayout = () => {
 
   const { user, logout } = useAuth();
 
-  const [profileAnchor, setProfileAnchor] =
-    useState(null);
-
-  const [serviceAnchor, setServiceAnchor] =
-    useState(null);
+  const [profileAnchor, setProfileAnchor] = useState(null);
+  const [serviceAnchor, setServiceAnchor] = useState(null);
 
   const profileOpen = Boolean(profileAnchor);
   const serviceOpen = Boolean(serviceAnchor);
@@ -48,45 +46,19 @@ const SuperAdminLayout = () => {
 
   const handleLogout = async () => {
     handleProfileClose();
-
     await logout();
-
     navigate("/login");
   };
 
   const serviceItems = [
-    {
-      label: "Routes",
-      path: "/super-admin/routes",
-    },
-    {
-      label: "Buses",
-      path: "/super-admin/buses",
-    },
-    {
-      label: "Seat Layouts",
-      path: "/super-admin/seat-layouts",
-    },
-    {
-      label: "Drivers",
-      path: "/super-admin/drivers",
-    },
-    {
-      label: "Booking Staff",
-      path: "/super-admin/booking-staff",
-    },
-    {
-      label: "Customers",
-      path: "/super-admin/customers",
-    },
-    {
-      label: "Trips",
-      path: "/super-admin/trips",
-    },
-    {
-      label: "Bookings",
-      path: "/super-admin/bookings",
-    },
+    { label: "Routes", path: "/super-admin/routes" },
+    { label: "Buses", path: "/super-admin/buses" },
+    { label: "Seat Layouts", path: "/super-admin/seat-layouts" },
+    { label: "Drivers", path: "/super-admin/drivers" },
+    { label: "Booking Staff", path: "/super-admin/booking-staff" },
+    { label: "Customers", path: "/super-admin/customers" },
+    { label: "Trips", path: "/super-admin/trips" },
+    { label: "Bookings", path: "/super-admin/bookings" },
   ];
 
   return (
@@ -96,8 +68,7 @@ const SuperAdminLayout = () => {
         backgroundColor: "#f5f7fb",
       }}
     >
-      {/* ================= NAVBAR ================= */}
-
+      {/* NAVBAR */}
       <AppBar
         position="static"
         elevation={0}
@@ -114,22 +85,51 @@ const SuperAdminLayout = () => {
             },
           }}
         >
-          {/* LOGO */}
-
-          <Typography
-            variant="h5"
+          {/* BRAND LOGO AND SUBTITLE */}
+          <Box
+            onClick={() => navigate("/")}
             sx={{
-              fontWeight: 500,
               flexGrow: 1,
               cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
             }}
-            onClick={() => navigate("/")}
           >
-            Shamolly Bus Service
-          </Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                fontWeight: 700,
+                lineHeight: 1.1,
+                letterSpacing: "0.2px",
+                color: "#ffffff",
+              }}
+            >
+              <Box
+                component="span"
+                sx={{ color: "#22c55e" }}
+              >
+                Green
+              </Box>
+              Bus
+            </Typography>
+
+            <Typography
+              component="span"
+              sx={{
+                mt: 0.35,
+                fontSize: { xs: "0.65rem", sm: "0.72rem" },
+                fontWeight: 600,
+                letterSpacing: "0.25px",
+                color: "#fbbf24",
+              }}
+            >
+              Bus management Service
+            </Typography>
+          </Box>
 
           {/* NAVIGATION */}
-
           <Box
             sx={{
               display: "flex",
@@ -138,7 +138,6 @@ const SuperAdminLayout = () => {
             }}
           >
             {/* HOME */}
-
             <Box
               onClick={() => navigate("/")}
               sx={{
@@ -147,10 +146,9 @@ const SuperAdminLayout = () => {
                 borderRadius: 1,
                 cursor: "pointer",
                 fontSize: 16,
-
+                color: "#ffffff",
                 "&:hover": {
-                  backgroundColor:
-                    "rgba(255,255,255,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.08)",
                 },
               }}
             >
@@ -158,7 +156,6 @@ const SuperAdminLayout = () => {
             </Box>
 
             {/* ABOUT */}
-
             <Box
               onClick={() => navigate("/about")}
               sx={{
@@ -167,10 +164,9 @@ const SuperAdminLayout = () => {
                 borderRadius: 1,
                 cursor: "pointer",
                 fontSize: 16,
-
+                color: "#ffffff",
                 "&:hover": {
-                  backgroundColor:
-                    "rgba(255,255,255,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.08)",
                 },
               }}
             >
@@ -178,7 +174,6 @@ const SuperAdminLayout = () => {
             </Box>
 
             {/* SERVICES */}
-
             <Box
               onClick={handleServiceClick}
               sx={{
@@ -190,18 +185,14 @@ const SuperAdminLayout = () => {
                 alignItems: "center",
                 gap: 0.5,
                 fontSize: 16,
-
+                color: "#ffffff",
                 "&:hover": {
-                  backgroundColor:
-                    "rgba(255,255,255,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.08)",
                 },
               }}
             >
               SERVICES
-
-              <KeyboardArrowDownIcon
-                sx={{ fontSize: 20 }}
-              />
+              <KeyboardArrowDownIcon sx={{ fontSize: 20 }} />
             </Box>
 
             <Menu
@@ -223,25 +214,22 @@ const SuperAdminLayout = () => {
             </Menu>
 
             {/* PROFILE */}
-
             <Box
               onClick={handleProfileClick}
               sx={{
                 ml: 2,
                 pl: 2,
                 pr: 1,
-                borderLeft:
-                  "1px solid rgba(255,255,255,0.2)",
+                borderLeft: "1px solid rgba(255,255,255,0.2)",
                 display: "flex",
                 alignItems: "center",
                 gap: 1.2,
                 cursor: "pointer",
                 borderRadius: 2,
                 py: 0.5,
-
+                color: "#ffffff",
                 "&:hover": {
-                  backgroundColor:
-                    "rgba(255,255,255,0.08)",
+                  backgroundColor: "rgba(255,255,255,0.08)",
                 },
               }}
             >
@@ -257,32 +245,24 @@ const SuperAdminLayout = () => {
               </Avatar>
 
               <Box>
-                <Typography
-                  fontWeight={700}
-                  fontSize={16}
-                >
+                <Typography fontWeight={700} fontSize={16}>
                   {user?.name || "Super Admin"}
                 </Typography>
 
                 <Typography
                   fontSize={13}
-                  sx={{
-                    color: "#aab5c8",
-                  }}
+                  sx={{ color: "#aab5c8" }}
                 >
                   (Super Admin)
                 </Typography>
               </Box>
 
               <KeyboardArrowDownIcon
-                sx={{
-                  color: "#d5dbea",
-                }}
+                sx={{ color: "#d5dbea" }}
               />
             </Box>
 
             {/* PROFILE MENU */}
-
             <Menu
               anchorEl={profileAnchor}
               open={profileOpen}
@@ -304,8 +284,7 @@ const SuperAdminLayout = () => {
         </Toolbar>
       </AppBar>
 
-      {/* ================= PAGE CONTENT ================= */}
-
+      {/* PAGE CONTENT */}
       <Container
         maxWidth={false}
         sx={{

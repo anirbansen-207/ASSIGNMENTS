@@ -4,7 +4,8 @@ import { createTripService,
   updateTripService,
   updateTripStatusService,
   cancelTripService,
-  getCompletedTripsService
+  getCompletedTripsService,
+  deleteTripService,
  } from "../services/tripService.js";
 import { successResponse } from "../utils/response.js";
 
@@ -157,6 +158,18 @@ export const getCompletedTripsController = async (
       "Completed trip history fetched successfully",
       completedTrips
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete (soft-delete) a completed or cancelled trip.
+export const deleteTripController = async (req, res, next) => {
+  try {
+    const { tripId } = req.params;
+    const result = await deleteTripService(tripId);
+
+    return successResponse(res, 200, "Trip deleted successfully", result);
   } catch (error) {
     next(error);
   }

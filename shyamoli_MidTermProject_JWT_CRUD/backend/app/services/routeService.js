@@ -13,23 +13,15 @@ export const createRouteService = async ({
   createdBy,
 }) => {
   try {
-    // Check whether route already exists
-    const existingRoute = await Route.findOne({
-      sourceCity,
-      destinationCity,
-    });
+    const existingRoute = await Route.findOne({ sourceCity, destinationCity });
 
     if (existingRoute) {
-      const error = new Error(
-        "Route already exists between these cities",
-      );
-
+      const error = new Error("Route already exists between these cities");
       error.statusCode = 409;
       throw error;
     }
 
-    // Create route
-    const route = await Route.create({
+    return await Route.create({
       sourceCity,
       destinationCity,
       intermediateStops,
@@ -39,8 +31,6 @@ export const createRouteService = async ({
       routeStatus,
       createdBy,
     });
-
-    return route;
   } catch (error) {
     throw error;
   }
@@ -49,9 +39,7 @@ export const createRouteService = async ({
 // GET ALL ROUTES
 export const getAllRoutesService = async () => {
   try {
-    const routes = await Route.find();
-
-    return routes;
+    return await Route.find();
   } catch (error) {
     throw error;
   }
@@ -61,13 +49,11 @@ export const getAllRoutesService = async () => {
 export const getSingleRouteService = async (routeId) => {
   try {
     const route = await Route.findById(routeId);
-
     if (!route) {
       const error = new Error("Route not found");
       error.statusCode = 404;
       throw error;
     }
-
     return route;
   } catch (error) {
     throw error;
@@ -75,31 +61,18 @@ export const getSingleRouteService = async (routeId) => {
 };
 
 // UPDATE ROUTE
-export const updateRouteService = async (
-  routeId,
-  updateData,
-) => {
+export const updateRouteService = async (routeId, updateData) => {
   try {
-    // Check whether route exists
     const route = await Route.findById(routeId);
-
     if (!route) {
       const error = new Error("Route not found");
       error.statusCode = 404;
       throw error;
     }
-
-    // Update route
-    const updatedRoute = await Route.findByIdAndUpdate(
-      routeId,
-      updateData,
-      {
-        new: true,
-        runValidators: true,
-      },
-    );
-
-    return updatedRoute;
+    return await Route.findByIdAndUpdate(routeId, updateData, {
+      new: true,
+      runValidators: true,
+    });
   } catch (error) {
     throw error;
   }
@@ -108,33 +81,29 @@ export const updateRouteService = async (
 // DELETE ROUTE
 export const deleteRouteService = async (routeId) => {
   try {
-    // Check whether route exists
     const route = await Route.findById(routeId);
-
     if (!route) {
       const error = new Error("Route not found");
       error.statusCode = 404;
       throw error;
     }
 
-    // Check whether this route is already
-    // being used by any trip
-    const trip = await Trip.findOne({
+    // Only scheduled or ongoing trips prevent route deletion.
+    // Completed/cancelled trips are historical records and do not block deletion.
+    const activeTrip = await Trip.findOne({
       routeId,
+      tripStatus: { $in: ["SCHEDULED", "ONGOING"] },
     });
 
-    if (trip) {
+    if (activeTrip) {
       const error = new Error(
-        "Route cannot be deleted because it is already used by a trip",
+        "Route cannot be deleted because it is used by a scheduled or ongoing trip. Complete or cancel that trip first.",
       );
-
       error.statusCode = 400;
       throw error;
     }
 
-    // Delete route
     await Route.findByIdAndDelete(routeId);
-
     return route;
   } catch (error) {
     throw error;

@@ -1,3 +1,4 @@
+
 import {
   createBusService,
   getAllBusService,
@@ -7,91 +8,116 @@ import {
   getBusDetailsByBusNumberService,
   adjustBusSeatService,
 } from "../services/busService.js";
+
 import { successResponse } from "../utils/response.js";
 
-// create bus controller
+// CREATE BUS
 export const createBusController = async (req, res, next) => {
   try {
-    const { busNumber, busName, busType, totalSeats,ticketPrice } = req.body;
+    const {
+      busNumber,
+      busType,
+      totalSeats,
+      ticketPrice,
+    } = req.body;
 
-    // pass this data to service layer
     const bus = await createBusService({
       busNumber,
-      busName,
       busType,
       totalSeats,
       ticketPrice,
       createdBy: req.user.userId,
     });
 
-    // send response
-    return successResponse(res, 201, "Bus created successfully", bus);
+    return successResponse(
+      res,
+      201,
+      "Bus created successfully",
+      bus,
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// view all buses controller
+// VIEW ALL BUSES
 export const getAllBusController = async (req, res, next) => {
   try {
-    // call viewAllBusesService
     const allBus = await getAllBusService();
 
-    // send response
-    return successResponse(res, 200, "Buses fetched successfully", allBus);
+    return successResponse(
+      res,
+      200,
+      "Buses fetched successfully",
+      allBus,
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// view single bus controller
+// VIEW SINGLE BUS
 export const getSingleBusController = async (req, res, next) => {
   try {
-    // call viewSingleBusService
     const singleBus = await getSingleBusService(req.params.busId);
 
-    // send response
-    return successResponse(res, 200, "Bus fetched successfully", singleBus);
+    return successResponse(
+      res,
+      200,
+      "Bus fetched successfully",
+      singleBus,
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// update bus controller
+// UPDATE BUS
 export const updateBusController = async (req, res, next) => {
   try {
-    // call updateBusService
-    const updatedBus = await updateBusService(req.params.busId, req.body);
+    const updatedBus = await updateBusService(
+      req.params.busId,
+      req.body,
+    );
 
-    // send response
-    return successResponse(res, 200, "Bus updated successfully", updatedBus);
+    return successResponse(
+      res,
+      200,
+      "Bus updated successfully",
+      updatedBus,
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// delete bus controller
+// DELETE BUS
 export const deleteBusController = async (req, res, next) => {
   try {
-    //call deleteBusService
     const deletedBus = await deleteBusService(req.params.busId);
 
-    // send response
-    return successResponse(res, 200, "Bus deleted successfully", deletedBus);
+    return successResponse(
+      res,
+      200,
+      "Bus deleted successfully",
+      deletedBus,
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// getbus by bus number controller
-export const getBusDetailsByBusNumberController = async (req, res, next) => {
+// GET BUS BY NUMBER
+export const getBusDetailsByBusNumberController = async (
+  req,
+  res,
+  next,
+) => {
   try {
-    // call getBusByBusNumberService
     const busByNumber = await getBusDetailsByBusNumberService(
       req.params.busNumber,
     );
 
-    // send response
     return successResponse(
       res,
       200,
@@ -103,16 +129,14 @@ export const getBusDetailsByBusNumberController = async (req, res, next) => {
   }
 };
 
-// adjust seat by Bus number controller
+// ADJUST BUS SEATS
 export const adjustBusSeatController = async (req, res, next) => {
   try {
-    // call adjustBusSeatService
     const busByNumber = await adjustBusSeatService(
       req.params.busNumber,
       req.body.totalSeats,
     );
 
-    // send response
     return successResponse(
       res,
       200,

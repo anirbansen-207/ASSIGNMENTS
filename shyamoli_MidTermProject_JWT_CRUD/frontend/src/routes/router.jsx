@@ -224,7 +224,7 @@ const router = createBrowserRouter([
                 element: <EditBus />,
               },
               {
-                path: "seat-layout",
+                path: "seat-layouts",
                 element: <SeatLayouts />,
               },
               {

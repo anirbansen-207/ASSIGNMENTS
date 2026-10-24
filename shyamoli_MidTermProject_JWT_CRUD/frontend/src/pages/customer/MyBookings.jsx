@@ -1,17 +1,26 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Typography,
 } from "@mui/material";
 
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+
+import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -20,311 +29,359 @@ import {
   getTicket,
 } from "../../services/customerService";
 
+const formatDate = (value) => {
+  if (!value) return "—";
+
+  const parsedDate = dayjs(value);
+
+  return parsedDate.isValid()
+    ? parsedDate.format("DD/MM/YYYY")
+    : "—";
+};
+
 const MyBookings = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const queryClient =
-    useQueryClient();
-
-  // =========================================================
-  // FETCH CUSTOMER BOOKINGS
-  // =========================================================
+  const [travelDate, setTravelDate] = useState(null);
+  const [bookingStatus, setBookingStatus] = useState("ALL");
 
   const {
-    data: bookings,
+    data: bookings = [],
     isLoading,
     isError,
     error,
   } = useQuery({
     queryKey: ["my-bookings"],
-
     queryFn: getOwnBookings,
   });
 
-  // =========================================================
-  // CANCEL BOOKING
-  // =========================================================
+  const cancelMutation = useMutation({
+    mutationFn: cancelBooking,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["my-bookings"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["my-tickets"],
+        }),
+      ]);
+    },
+  });
 
-  const cancelMutation =
-    useMutation({
-      mutationFn: cancelBooking,
+  const ticketMutation = useMutation({
+    mutationFn: getTicket,
+    onSuccess: (ticket, bookingId) => {
+      navigate(`/customer/ticket?bookingId=${bookingId}`, {
+        state: { ticket },
+      });
+    },
+  });
 
-      onSuccess: () => {
-        // Fetch bookings again
-        // after cancellation.
-        queryClient.invalidateQueries(
-          {
-            queryKey: [
-              "my-bookings",
-            ],
-          },
-        );
-      },
+  // Match the selected date and status together.
+  const filteredBookings = bookings.filter((booking) => {
+    const trip = booking.tripId;
+    const tripDate = trip?.travelDate;
 
-      onError: (error) => {
-        console.error(
-          "Cancellation failed:",
-          error,
-        );
-      },
-    });
+    const matchesDate =
+      !travelDate ||
+      (tripDate &&
+        dayjs(tripDate).isValid() &&
+        dayjs(tripDate).format("YYYY-MM-DD") ===
+          travelDate.format("YYYY-MM-DD"));
 
-  // =========================================================
-  // VIEW TICKET
-  // =========================================================
+    const effectiveStatus =
+      trip?.tripStatus === "COMPLETED"
+        ? "COMPLETED"
+        : booking.status;
 
-  const ticketMutation =
-    useMutation({
-      mutationFn: getTicket,
+    const matchesStatus =
+      bookingStatus === "ALL" ||
+      effectiveStatus === bookingStatus;
 
-      onSuccess: (
-        ticket,
-        bookingId,
-      ) => {
-        console.log(
-          "Ticket fetched successfully:",
-          ticket,
-        );
+    return Boolean(matchesDate) && matchesStatus;
+  });
 
-        // IMPORTANT:
-        //
-        // Include bookingId in URL so
-        // Ticket.jsx can recover the ticket
-        // after a browser refresh.
-        navigate(
-          `/customer/ticket?bookingId=${bookingId}`,
-          {
-            state: {
-              ticket,
-            },
-          },
-        );
-      },
-
-      onError: (error) => {
-        console.error(
-          "Failed to fetch ticket:",
-          error,
-        );
-      },
-    });
-
-  // =========================================================
-  // LOADING
-  // =========================================================
+  const resetFilters = () => {
+    setTravelDate(null);
+    setBookingStatus("ALL");
+  };
 
   if (isLoading) {
-    return (
-      <p>
-        Loading your bookings...
-      </p>
-    );
+    return <Typography>Loading your bookings...</Typography>;
   }
-
-  // =========================================================
-  // ERROR
-  // =========================================================
 
   if (isError) {
     return (
-      <p>
-        Failed to load bookings:{" "}
-        {error.message}
-      </p>
+      <Alert severity="error">
+        {error?.response?.data?.message ||
+          error?.message ||
+          "Failed to load your bookings."}
+      </Alert>
     );
   }
 
-  // =========================================================
-  // EMPTY
-  // =========================================================
-
-  if (
-    !bookings ||
-    bookings.length === 0
-  ) {
-    return (
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box>
-        <Typography variant="h4">
+        <Typography variant="h4" gutterBottom fontWeight={700}>
           My Bookings
         </Typography>
 
-        <Typography sx={{ mt: 2 }}>
-          You don't have any
-          bookings yet.
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          View and filter your current and previous bus bookings.
         </Typography>
-      </Box>
-    );
-  }
 
-  // =========================================================
-  // UI
-  // =========================================================
+        {cancelMutation.isError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {cancelMutation.error?.response?.data?.message ||
+              "Failed to cancel the booking."}
+          </Alert>
+        )}
 
-  return (
-    <Box>
-      <Typography
-        variant="h4"
-        gutterBottom
-      >
-        My Bookings
-      </Typography>
+        {ticketMutation.isError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {ticketMutation.error?.response?.data?.message ||
+              "Failed to load the ticket."}
+          </Alert>
+        )}
 
-      {bookings.map((booking) => (
+        {/* Date and status filters */}
         <Card
-          key={booking._id}
-          sx={{ mb: 3 }}
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "none",
+          }}
         >
           <CardContent>
-            {/* Route */}
-
-            <Typography variant="h6">
-              {
-                booking.tripId
-                  ?.routeId
-                  ?.sourceCity
-              }
-
-              {" → "}
-
-              {
-                booking.tripId
-                  ?.routeId
-                  ?.destinationCity
-              }
+            <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+              Filter Bookings
             </Typography>
 
-            {/* Bus */}
-
-            <Typography
-              sx={{ mt: 2 }}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                },
+                gap: 2,
+                alignItems: "center",
+              }}
             >
-              <strong>
-                Bus:
-              </strong>{" "}
-              {
-                booking.tripId
-                  ?.busId
-                  ?.busName
-              }
-            </Typography>
+              <DatePicker
+                label="Travel Date"
+                value={travelDate}
+                onChange={(newValue) => {
+                  setTravelDate(
+                    newValue && newValue.isValid() ? newValue : null,
+                  );
+                }}
+                format="DD/MM/YYYY"
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    placeholder: "DD/MM/YYYY",
+                  },
+                  actionBar: {
+                    actions: ["clear", "today", "accept"],
+                  },
+                }}
+              />
 
-            {/* Bus Number */}
+              <FormControl fullWidth>
+                <InputLabel id="booking-status-label">
+                  Booking Status
+                </InputLabel>
 
-            <Typography>
-              <strong>
-                Bus Number:
-              </strong>{" "}
-              {
-                booking.tripId
-                  ?.busId
-                  ?.busNumber
-              }
-            </Typography>
+                <Select
+                  labelId="booking-status-label"
+                  label="Booking Status"
+                  value={bookingStatus}
+                  onChange={(event) =>
+                    setBookingStatus(event.target.value)
+                  }
+                >
+                  <MenuItem value="ALL">All Statuses</MenuItem>
+                  <MenuItem value="PENDING_PAYMENT">
+                    Pending Payment
+                  </MenuItem>
+                  <MenuItem value="CONFIRMED">Confirmed</MenuItem>
+                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
+                  <MenuItem value="COMPLETED">Completed</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
 
-            {/* Seats */}
-
-            <Typography>
-              <strong>
-                Seat(s):
-              </strong>{" "}
-              {booking.seatNumbers?.join(
-                ", ",
-              )}
-            </Typography>
-
-            {/* Travel Date */}
-
-            <Typography>
-              <strong>
-                Travel Date:
-              </strong>{" "}
-              {
-                booking.tripId
-                  ?.travelDate
-              }
-            </Typography>
-
-            {/* Departure */}
-
-            <Typography>
-              <strong>
-                Departure:
-              </strong>{" "}
-              {
-                booking.tripId
-                  ?.departureTime
-              }
-            </Typography>
-
-            {/* Amount */}
-
-            <Typography>
-              <strong>
-                Amount:
-              </strong>{" "}
-              ₹
-              {booking.totalAmount}
-            </Typography>
-
-            {/* Status */}
-
-            <Typography sx={{ mt: 1 }}>
-              <strong>
-                Status:
-              </strong>{" "}
-              {booking.status}
-            </Typography>
-
-            {/* ================= VIEW TICKET ================= */}
-
-            <Button
-              variant="contained"
+            <Box
               sx={{
                 mt: 2,
-                mr: 2,
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 2,
               }}
-              onClick={() =>
-                ticketMutation.mutate(
-                  booking._id,
-                )
-              }
-              disabled={
-                ticketMutation.isPending
-              }
             >
-              {ticketMutation.isPending
-                ? "Loading Ticket..."
-                : "View Ticket"}
-            </Button>
+              <Button
+                variant="outlined"
+                onClick={resetFilters}
+                disabled={!travelDate && bookingStatus === "ALL"}
+              >
+                Reset Filters
+              </Button>
 
-            {/* ================= CANCEL ================= */}
-
-            <Button
-              variant="contained"
-              color="error"
-              sx={{ mt: 2 }}
-              onClick={() =>
-                cancelMutation.mutate(
-                  booking._id,
-                )
-              }
-              disabled={
-                cancelMutation.isPending ||
-                booking.status ===
-                  "CANCELLED"
-              }
-            >
-              {booking.status ===
-              "CANCELLED"
-                ? "Booking Cancelled"
-                : cancelMutation.isPending
-                  ? "Cancelling..."
-                  : "Cancel Booking"}
-            </Button>
+              <Typography variant="body2" color="text.secondary">
+                Showing {filteredBookings.length} of {bookings.length} bookings
+              </Typography>
+            </Box>
           </CardContent>
         </Card>
-      ))}
-    </Box>
+
+        {bookings.length === 0 ? (
+          <Card>
+            <CardContent>
+              <Typography fontWeight={600}>
+                You don't have any bookings yet.
+              </Typography>
+
+              <Button
+                variant="contained"
+                sx={{ mt: 2 }}
+                onClick={() => navigate("/customer/trips")}
+              >
+                Book a Ticket
+              </Button>
+            </CardContent>
+          </Card>
+        ) : filteredBookings.length === 0 ? (
+          <Alert severity="info">
+            No bookings match your selected filters. Change the date or
+            status, or reset the filters.
+          </Alert>
+        ) : (
+          filteredBookings.map((booking) => {
+            const trip = booking.tripId;
+            const isCancelled = booking.status === "CANCELLED";
+            const isCompleted = trip?.tripStatus === "COMPLETED";
+
+            const effectiveStatus = isCompleted
+              ? "COMPLETED"
+              : booking.status;
+
+            const statusColor = isCancelled
+              ? "error"
+              : isCompleted
+                ? "default"
+                : booking.status === "CONFIRMED"
+                  ? "success"
+                  : "warning";
+
+            return (
+              <Card key={booking._id} sx={{ mb: 3, borderRadius: 3 }}>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 1,
+                    }}
+                  >
+                    <Typography variant="h6" fontWeight={700}>
+                      {trip?.routeId?.sourceCity || "Source"}
+                      {" → "}
+                      {trip?.routeId?.destinationCity || "Destination"}
+                    </Typography>
+
+                    <Chip
+                      label={effectiveStatus || "UNKNOWN"}
+                      color={statusColor}
+                      size="small"
+                    />
+                  </Box>
+
+                  <Typography sx={{ mt: 2 }}>
+                    <strong>Bus:</strong>{" "}
+                    {trip?.busId?.busName || "—"}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Bus Number:</strong>{" "}
+                    {trip?.busId?.busNumber || "—"}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Seat(s):</strong>{" "}
+                    {booking.seatNumbers?.join(", ") || "—"}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Travel Date:</strong>{" "}
+                    {formatDate(trip?.travelDate)}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Departure:</strong>{" "}
+                    {trip?.departureTime || "—"}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Amount:</strong> ₹{booking.totalAmount ?? 0}
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 1.5,
+                      mt: 3,
+                    }}
+                  >
+                    {!isCancelled && (
+                      <Button
+                        variant="contained"
+                        onClick={() => ticketMutation.mutate(booking._id)}
+                        disabled={ticketMutation.isPending}
+                      >
+                        {ticketMutation.isPending
+                          ? "Loading Ticket..."
+                          : "View Ticket"}
+                      </Button>
+                    )}
+
+                    {!isCancelled && !isCompleted && (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={() => {
+                          const confirmed = window.confirm(
+                            "Are you sure you want to cancel this booking?",
+                          );
+
+                          if (confirmed) {
+                            cancelMutation.mutate(booking._id);
+                          }
+                        }}
+                        disabled={cancelMutation.isPending}
+                      >
+                        {cancelMutation.isPending
+                          ? "Cancelling..."
+                          : "Cancel Booking"}
+                      </Button>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </Box>
+    </LocalizationProvider>
   );
 };
 

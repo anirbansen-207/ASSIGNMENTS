@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const seatSchema = new mongoose.Schema(
@@ -11,6 +12,13 @@ const seatSchema = new mongoose.Schema(
       type: String,
       enum: ["regular", "vip", "ladies", "reserved"],
       default: "regular",
+    },
+
+    // Used only for sleeper berths: "upper" or "lower".
+    berthLevel: {
+      type: String,
+      enum: ["upper", "lower", null],
+      default: null,
     },
 
     ticketPrice: {

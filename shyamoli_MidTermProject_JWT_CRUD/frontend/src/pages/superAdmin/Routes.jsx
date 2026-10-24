@@ -1,17 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { useNavigate } from "react-router-dom";
-
 import { Box, Button, Card, CardContent, Typography } from "@mui/material";
-
+import { toast } from "sonner";
 import { getAllRoutes, deleteRoute } from "../../services/routeService";
 
 const Routes = () => {
   const navigate = useNavigate();
-
   const queryClient = useQueryClient();
 
-  // Fetch all routes
   const {
     data: routes,
     isLoading,
@@ -22,28 +18,41 @@ const Routes = () => {
     queryFn: getAllRoutes,
   });
 
-  // Delete route
   const deleteMutation = useMutation({
     mutationFn: deleteRoute,
-
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["routes"],
-      });
+      toast.success("Route deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
     },
-
     onError: (error) => {
-      console.error("Failed to delete route:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to delete route",
+      );
     },
   });
 
   if (isLoading) {
-    return <p>Loading routes...</p>;
+    return <Typography>Loading routes...</Typography>;
   }
 
   if (isError) {
-    return <p>Failed to load routes: {error.message}</p>;
+    return (
+      <Typography color="error">
+        Failed to load routes: {error.message}
+      </Typography>
+    );
   }
+
+  const handleDelete = (route) => {
+    const routeName = `${route.sourceCity} → ${route.destinationCity}`;
+    if (
+      window.confirm(
+        `Delete route ${routeName}? Routes used by scheduled or ongoing trips cannot be deleted. Completed and cancelled trips will not block deletion.`,
+      )
+    ) {
+      deleteMutation.mutate(route._id);
+    }
+  };
 
   return (
     <Box>
@@ -66,9 +75,7 @@ const Routes = () => {
           <Card key={route._id} sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="h6">
-                {route.sourceCity}
-                {" → "}
-                {route.destinationCity}
+                {route.sourceCity} → {route.destinationCity}
               </Typography>
 
               <Typography sx={{ mt: 1 }}>
@@ -93,7 +100,7 @@ const Routes = () => {
                 variant="contained"
                 color="error"
                 sx={{ mt: 2 }}
-                onClick={() => deleteMutation.mutate(route._id)}
+                onClick={() => handleDelete(route)}
                 disabled={deleteMutation.isPending}
               >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}

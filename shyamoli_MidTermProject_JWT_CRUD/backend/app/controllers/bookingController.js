@@ -16,11 +16,7 @@ export const createBookingController = async (req, res, next) => {
     const { userId, role } = req.user;
 
     // Get booking data from request body
-    const {
-      tripId,
-      seatNumbers,
-      customerId: requestedCustomerId,
-    } = req.body;
+    const { tripId, seatNumbers, customerId: requestedCustomerId } = req.body;
 
     /*
       Customer:
@@ -32,37 +28,32 @@ export const createBookingController = async (req, res, next) => {
       for a customer
     */
     const customerId =
-      role === ROLES.BOOKING_STAFF
-        ? requestedCustomerId
-        : userId;
+      role === ROLES.BOOKING_STAFF ? requestedCustomerId : userId;
 
     // Booking staff must provide customerId
     if (role === ROLES.BOOKING_STAFF && !requestedCustomerId) {
       const error = new Error(
-        "Customer ID is required for booking staff booking"
+        "Customer ID is required for booking staff booking",
       );
       error.statusCode = 400;
       throw error;
     }
 
-    // Create booking through service layer
+    const bookingStatus =
+      role === ROLES.BOOKING_STAFF ? "CONFIRMED" : "PENDING_PAYMENT";
+
     const booking = await createBookingService({
       customerId,
       tripId,
       seatNumbers,
+      bookingStatus,
     });
 
-    return successResponse(
-      res,
-      201,
-      "Booking created successfully",
-      booking
-    );
+    return successResponse(res, 201, "Booking created successfully", booking);
   } catch (error) {
     next(error);
   }
 };
-
 
 // Get all bookings
 export const getAllBookingsController = async (req, res, next) => {
@@ -73,13 +64,12 @@ export const getAllBookingsController = async (req, res, next) => {
       res,
       200,
       "All bookings fetched successfully",
-      allBookings
+      allBookings,
     );
   } catch (error) {
     next(error);
   }
 };
-
 
 // Get single booking
 export const getSingleBookingController = async (req, res, next) => {
@@ -94,22 +84,18 @@ export const getSingleBookingController = async (req, res, next) => {
       customerId = userId;
     }
 
-    const singleBooking = await getSingleBookingService(
-      bookingId,
-      customerId
-    );
+    const singleBooking = await getSingleBookingService(bookingId, customerId);
 
     return successResponse(
       res,
       200,
       "Single booking fetched successfully",
-      singleBooking
+      singleBooking,
     );
   } catch (error) {
     next(error);
   }
 };
-
 
 // Cancel booking
 // Cancel booking controller
@@ -122,16 +108,12 @@ export const cancelBookingController = async (req, res, next) => {
 
     // Customer cancels their own booking.
     // Booking Staff can cancel any customer's booking.
-    const customerId =
-      role === ROLES.CUSTOMER
-        ? userId
-        : undefined;
+    const customerId = role === ROLES.CUSTOMER ? userId : undefined;
 
-    const cancelledBooking =
-      await cancelBookingService({
-        bookingId,
-        customerId,
-      });
+    const cancelledBooking = await cancelBookingService({
+      bookingId,
+      customerId,
+    });
 
     return successResponse(
       res,
@@ -144,7 +126,6 @@ export const cancelBookingController = async (req, res, next) => {
   }
 };
 
-
 // Get available seats
 export const getAvailableSeatsController = async (req, res, next) => {
   try {
@@ -156,7 +137,7 @@ export const getAvailableSeatsController = async (req, res, next) => {
       res,
       200,
       "Available seats fetched successfully",
-      seats
+      seats,
     );
   } catch (error) {
     next(error);

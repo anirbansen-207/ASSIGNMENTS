@@ -1,6 +1,7 @@
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 
 import connectDB from "./app/config/db.js";
@@ -20,21 +21,19 @@ import seatLayoutRoutes from "./app/routes/seatLayoutRoutes.js";
 import paymentRoutes from "./app/routes/paymentRoutes.js";
 import ticketGenerationRoutes from "./app/routes/ticketGenerationRoutes.js";
 
-// Load environment variables
-dotenv.config();
-
 const app = express();
-
-// ================= ENVIRONMENT =================
 
 const PORT = process.env.PORT || 8000;
 
-const clientUrl =
-  process.env.CLIENT_URL ||
-  "http://localhost:5173";
+// CLIENT_URL may contain one frontend URL or multiple comma-separated URLs.
+const allowedOrigins = (
+  process.env.CLIENT_URL || "http://localhost:5173"
+)
+  .split(",")
+  .map((url) => url.trim())
+  .filter(Boolean);
 
-// ================= GLOBAL MIDDLEWARE =================
-
+// Global middleware
 app.use(express.json());
 
 app.use(
@@ -43,92 +42,60 @@ app.use(
   }),
 );
 
-// Cookie Parser
 app.use(cookieParser());
 
-// ================= CORS =================
-
+// CORS
 app.use(
   cors({
-    origin: clientUrl,
+    origin(origin, callback) {
+      // Allow requests without an Origin header (e.g. server-to-server/health checks).
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true,
   }),
 );
-
-// ================= ROUTES =================
 
 // Authentication
 app.use("/api/auth", authRoutes);
 
 // Super Admin
-app.use(
-  "/api/super_admin",
-  superAdminRoutes,
-);
+app.use("/api/super_admin", superAdminRoutes);
 
 // Customer
-app.use(
-  "/api/customer",
-  customerRoutes,
-);
+app.use("/api/customer", customerRoutes);
 
 // Bus
 app.use("/api/bus", busRoutes);
 
 // Booking Staff
-app.use(
-  "/api/booking_staff",
-  bookingStaffRoutes,
-);
+app.use("/api/booking_staff", bookingStaffRoutes);
 
 // Booking
-app.use(
-  "/api/booking",
-  bookingRoutes,
-);
+app.use("/api/booking", bookingRoutes);
 
 // Routes
-app.use(
-  "/api/routes",
-  routeRoutes,
-);
+app.use("/api/routes", routeRoutes);
 
 // Trips
-app.use(
-  "/api/trip",
-  tripRoutes,
-);
+app.use("/api/trip", tripRoutes);
 
 // Driver
-app.use(
-  "/api/driver",
-  driverRoutes,
-);
+app.use("/api/driver", driverRoutes);
 
 // Seat Layout
-app.use(
-  "/api/seat-layout",
-  seatLayoutRoutes,
-);
+app.use("/api/seat-layout", seatLayoutRoutes);
 
 // Payment
-app.use(
-  "/api/payment",
-  paymentRoutes,
-);
+app.use("/api/payment", paymentRoutes);
 
 // Ticket Generation
-app.use(
-  "/api/ticket",
-  ticketGenerationRoutes,
-);
+app.use("/api/ticket", ticketGenerationRoutes);
 
-// ================= ERROR MIDDLEWARE =================
-
-app.use(errorMiddleware);
-
-// ================= HEALTH CHECK =================
-
+// Health check
 app.get("/health", (req, res) => {
   return res.status(200).json({
     success: true,
@@ -136,24 +103,20 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ================= SERVER STARTUP =================
+// Error middleware should remain after routes.
+app.use(errorMiddleware);
 
+// Start server
 const startServer = async () => {
   try {
-    // Connect MongoDB
     await connectDB();
 
-    // Start server
     app.listen(PORT, () => {
-      console.log(
-        `Server is running on port ${PORT}`,
-      );
+      console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
-    console.error(
-      "Server Startup failed:",
-      error.message,
-    );
+    console.error("Server startup failed:", error.message);
+    process.exit(1);
   }
 };
 

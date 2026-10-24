@@ -1,5 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Box, Button, Card, CardContent, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Divider,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -7,11 +15,34 @@ import {
   cancelBooking,
 } from "../../services/adminBookingService";
 
+const formatDate = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "N/A"
+    : date.toLocaleDateString();
+};
+
+const formatTime = (value) => {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "N/A"
+    : date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+};
+
 const Bookings = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch all bookings
+  // Fetch all bookings.
   const {
     data: bookings,
     isLoading,
@@ -22,10 +53,9 @@ const Bookings = () => {
     queryFn: getAllBookings,
   });
 
-  // Cancel booking
+  // Cancel a booking and refresh the booking list.
   const cancelMutation = useMutation({
     mutationFn: cancelBooking,
-
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["bookings"],
@@ -34,13 +64,11 @@ const Bookings = () => {
   });
 
   const handleCancel = (bookingId) => {
-    const confirmCancel = window.confirm(
+    const confirmed = window.confirm(
       "Are you sure you want to cancel this booking?",
     );
 
-    if (!confirmCancel) {
-      return;
-    }
+    if (!confirmed) return;
 
     cancelMutation.mutate(bookingId);
   };
@@ -63,55 +91,96 @@ const Bookings = () => {
         Booking Management
       </Typography>
 
-      {bookings?.length === 0 ? (
+      {!bookings || bookings.length === 0 ? (
         <Typography>No bookings found.</Typography>
       ) : (
-        bookings?.map((booking) => (
-          <Card key={booking._id} sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6">Booking ID: {booking._id}</Typography>
+        bookings.map((booking) => {
+          const trip = booking.tripId;
+          const route = trip?.routeId;
+          const bus = trip?.busId;
 
-              <Typography>
-                <strong>Trip:</strong> {booking.tripId?.routeId?.sourceCity} →{" "}
-                {booking.tripId?.routeId?.destinationCity}
-              </Typography>
+          return (
+            <Card key={booking._id} sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Booking ID: {booking._id}
+                </Typography>
 
-              <Typography>
-                <strong>Customer:</strong> {booking.customerId?.name || "N/A"}
-              </Typography>
+                <Stack spacing={0.75}>
+                  <Typography>
+                    <strong>Route:</strong>{" "}
+                    {route?.sourceCity || "N/A"} →{" "}
+                    {route?.destinationCity || "N/A"}
+                  </Typography>
 
-              <Typography>
-                <strong>Seats:</strong>{" "}
-                {booking.seatNumbers?.join(", ") || "N/A"}
-              </Typography>
+                  <Typography>
+                    <strong>Bus Name:</strong>{" "}
+                    {bus?.busName || "N/A"}
+                  </Typography>
 
-              <Typography>
-                <strong>Status:</strong> {booking.status || "N/A"}
-              </Typography>
+                  <Typography>
+                    <strong>Bus Number:</strong>{" "}
+                    {bus?.busNumber || "N/A"}
+                  </Typography>
 
-              <Button
-                variant="outlined"
-                sx={{ mt: 2, mr: 2 }}
-                onClick={() => navigate(`/super-admin/bookings/${booking._id}`)}
-              >
-                View Details
-              </Button>
+                  <Typography>
+                    <strong>Travel Date:</strong>{" "}
+                    {formatDate(trip?.travelDate)}
+                  </Typography>
 
-              <Button
-                variant="outlined"
-                color="error"
-                sx={{ mt: 2 }}
-                disabled={
-                  cancelMutation.isPending ||
-                  booking.bookingStatus === "CANCELLED"
-                }
-                onClick={() => handleCancel(booking._id)}
-              >
-                Cancel Booking
-              </Button>
-            </CardContent>
-          </Card>
-        ))
+                  <Typography>
+                    <strong>Departure:</strong>{" "}
+                    {formatTime(trip?.departureTime)}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Arrival:</strong>{" "}
+                    {formatTime(trip?.arrivalTime)}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Customer:</strong>{" "}
+                    {booking.customerId?.name || "N/A"}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Seats:</strong>{" "}
+                    {booking.seatNumbers?.join(", ") || "N/A"}
+                  </Typography>
+
+                  <Typography>
+                    <strong>Status:</strong>{" "}
+                    {booking.status || "N/A"}
+                  </Typography>
+                </Stack>
+
+                <Divider sx={{ my: 1.5 }} />
+
+                <Button
+                  variant="outlined"
+                  sx={{ mr: 2, mb: { xs: 1, sm: 0 } }}
+                  onClick={() =>
+                    navigate(`/super-admin/bookings/${booking._id}`)
+                  }
+                >
+                  View Details
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  disabled={
+                    cancelMutation.isPending ||
+                    booking.status === "CANCELLED"
+                  }
+                  onClick={() => handleCancel(booking._id)}
+                >
+                  Cancel Booking
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })
       )}
     </Box>
   );

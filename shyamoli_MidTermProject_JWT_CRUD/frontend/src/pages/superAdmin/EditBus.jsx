@@ -1,5 +1,18 @@
+
 import { useEffect, useState } from "react";
-import { Box, Button, MenuItem, TextField, Typography } from "@mui/material";
+
+import {
+  Alert,
+  Box,
+  Button,
+  MenuItem,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+
+import DirectionsBusFilledIcon from "@mui/icons-material/DirectionsBusFilled";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -13,12 +26,10 @@ const EditBus = () => {
   const { busId } = useParams();
 
   const [formData, setFormData] = useState({
-    busName: "",
     busType: "",
     ticketPrice: "",
   });
 
-  // Fetch existing bus
   const {
     data: bus,
     isLoading,
@@ -27,30 +38,22 @@ const EditBus = () => {
   } = useQuery({
     queryKey: ["bus", busId],
     queryFn: () => getSingleBus(busId),
+    enabled: Boolean(busId),
   });
 
-  // Put existing bus data into form
   useEffect(() => {
     if (bus) {
       setFormData({
-        busName: bus.busName || "",
         busType: bus.busType || "",
-        ticketPrice: bus.ticketPrice || "",
+        ticketPrice: bus.ticketPrice ?? "",
       });
     }
   }, [bus]);
 
-  // Update bus
   const updateMutation = useMutation({
     mutationFn: updateBus,
-
     onSuccess: () => {
-      console.log("Bus updated successfully");
       navigate("/super-admin/buses");
-    },
-
-    onError: (error) => {
-      console.error("Failed to update bus:", error);
     },
   });
 
@@ -66,104 +69,191 @@ const EditBus = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    const busData = {
-      busName: formData.busName,
-      busType: formData.busType,
-      ticketPrice: Number(formData.ticketPrice),
-    };
-
     updateMutation.mutate({
       busId,
-      busData,
+      busData: {
+        busName: "GreenBus",
+        busType: formData.busType,
+        ticketPrice: Number(formData.ticketPrice),
+      },
     });
   };
 
   if (isLoading) {
-    return <p>Loading bus...</p>;
+    return (
+      <Box sx={{ py: 8, textAlign: "center" }}>
+        <Typography>Loading bus details...</Typography>
+      </Box>
+    );
   }
 
   if (isError) {
-    return <p>Failed to load bus: {error.message}</p>;
+    return (
+      <Alert severity="error">
+        {error?.response?.data?.message ||
+          error?.message ||
+          "Failed to load bus."}
+      </Alert>
+    );
+  }
+
+  if (!bus) {
+    return <Alert severity="warning">Bus not found.</Alert>;
   }
 
   return (
-    <Box sx={{ maxWidth: 700 }}>
-      <Typography variant="h4" gutterBottom>
-        Edit Bus
-      </Typography>
-
+    <Box sx={{ maxWidth: 850, mx: "auto", pb: 4 }}>
       <Box
-        component="form"
-        onSubmit={handleSubmit}
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
+          p: { xs: 2.5, sm: 4 },
+          mb: 3,
+          borderRadius: 3,
+          color: "#FFFFFF",
+          background:
+            "linear-gradient(120deg, #071832 0%, #14532D 100%)",
         }}
       >
-        {/* Bus Number - Read Only */}
-        <TextField
-          label="Bus Number"
-          value={bus?.busNumber || ""}
-          disabled
-        />
-
-        <TextField
-          label="Bus Name"
-          name="busName"
-          value={formData.busName}
-          onChange={handleChange}
-          required
-        />
-
-        <TextField
-          select
-          label="Bus Type"
-          name="busType"
-          value={formData.busType}
-          onChange={handleChange}
-          required
-        >
-          <MenuItem value="AC">AC</MenuItem>
-          <MenuItem value="NON_AC">NON AC</MenuItem>
-          <MenuItem value="SLEEPER">SLEEPER</MenuItem>
-        </TextField>
-
-        <TextField
-          label="Ticket Price"
-          name="ticketPrice"
-          type="number"
-          value={formData.ticketPrice}
-          onChange={handleChange}
-          required
-          inputProps={{ min: 0 }}
-        />
-
-        {/* Total seats are not updated here */}
-        <TextField
-          label="Total Seats"
-          value={bus?.totalSeats || ""}
-          disabled
-        />
-
-        <Box>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={updateMutation.isPending}
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              display: "grid",
+              placeItems: "center",
+              borderRadius: 2,
+              bgcolor: "#22C55E",
+            }}
           >
-            {updateMutation.isPending ? "Updating..." : "Update Bus"}
-          </Button>
+            <DirectionsBusFilledIcon
+              sx={{ color: "#071832", fontSize: 34 }}
+            />
+          </Box>
 
-          <Button
-            variant="outlined"
-            sx={{ ml: 2 }}
-            onClick={() => navigate("/super-admin/buses")}
-          >
-            Cancel
-          </Button>
-        </Box>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>
+              Edit GreenBus
+            </Typography>
+
+            <Typography sx={{ mt: 0.5, color: "#D1FAE5" }}>
+              Update the bus category and ticket price.
+            </Typography>
+          </Box>
+        </Stack>
       </Box>
+
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2.5, sm: 4 },
+          border: "1px solid #E2E8F0",
+          borderRadius: 3,
+        }}
+      >
+        {updateMutation.isError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {updateMutation.error?.response?.data?.message ||
+              updateMutation.error?.message ||
+              "Failed to update bus."}
+          </Alert>
+        )}
+
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2.5,
+          }}
+        >
+          <TextField
+            label="Bus Name"
+            value="GreenBus"
+            disabled
+            fullWidth
+            helperText="Fixed company name"
+          />
+
+          <TextField
+            label="Bus Number"
+            value={bus.busNumber || ""}
+            disabled
+            fullWidth
+          />
+
+          <TextField
+            select
+            label="Bus Category"
+            name="busType"
+            value={formData.busType}
+            onChange={handleChange}
+            required
+            fullWidth
+          >
+            <MenuItem value="AC">AC</MenuItem>
+            <MenuItem value="NON_AC">Non-AC</MenuItem>
+            <MenuItem value="SLEEPER">Sleeper</MenuItem>
+            <MenuItem value="SEATER">Seater</MenuItem>
+          </TextField>
+
+          <TextField
+            label="Ticket Price (₹)"
+            type="number"
+            name="ticketPrice"
+            value={formData.ticketPrice}
+            onChange={handleChange}
+            required
+            fullWidth
+            slotProps={{
+              htmlInput: { min: 0, step: "0.01" },
+            }}
+          />
+
+          <TextField
+            label="Total Seats"
+            value={bus.totalSeats ?? ""}
+            disabled
+            fullWidth
+          />
+
+          <TextField
+            label="Available Seats"
+            value={bus.availableSeats ?? ""}
+            disabled
+            fullWidth
+          />
+
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            sx={{ gridColumn: "1 / -1", mt: 1 }}
+          >
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={updateMutation.isPending}
+              sx={{
+                py: 1.25,
+                px: 3,
+                fontWeight: 700,
+                bgcolor: "#176B45",
+                "&:hover": { bgcolor: "#14532D" },
+              }}
+            >
+              {updateMutation.isPending ? "Updating..." : "Update Bus"}
+            </Button>
+
+            <Button
+              variant="outlined"
+              onClick={() => navigate("/super-admin/buses")}
+              disabled={updateMutation.isPending}
+              sx={{ py: 1.25, px: 3 }}
+            >
+              Cancel
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
     </Box>
   );
 };

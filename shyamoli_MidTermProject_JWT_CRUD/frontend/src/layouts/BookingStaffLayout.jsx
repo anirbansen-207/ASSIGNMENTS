@@ -96,17 +96,48 @@ const BookingStaffLayout = () => {
         >
           {/* LOGO */}
 
-          <Typography
-            variant="h5"
+          <Box
+            onClick={() => navigate("/")}
             sx={{
-              fontWeight: 500,
               flexGrow: 1,
               cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
             }}
-            onClick={() => navigate("/")}
           >
-            Shamolly Bus Service
-          </Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                fontWeight: 700,
+                lineHeight: 1.1,
+                letterSpacing: "0.2px",
+                color: "#ffffff",
+              }}
+            >
+              <Box
+                component="span"
+                sx={{ color: "#22c55e" }}
+              >
+                Green
+              </Box>
+              Bus
+            </Typography>
+
+            <Typography
+              component="span"
+              sx={{
+                mt: 0.35,
+                fontSize: { xs: "0.65rem", sm: "0.72rem" },
+                fontWeight: 600,
+                letterSpacing: "0.25px",
+                color: "#fbbf24",
+              }}
+            >
+              Bus management Service
+            </Typography>
+          </Box>
 
           {/* NAVIGATION */}
 

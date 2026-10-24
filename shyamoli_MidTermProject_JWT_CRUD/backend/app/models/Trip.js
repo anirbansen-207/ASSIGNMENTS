@@ -59,6 +59,12 @@ const tripSchema = new mongoose.Schema(
       default: "SCHEDULED",
     },
 
+    // Soft deletion keeps old booking/ticket references intact.
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
     // Super Admin who created the trip
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

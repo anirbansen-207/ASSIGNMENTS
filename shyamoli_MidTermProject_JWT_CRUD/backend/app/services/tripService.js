@@ -130,7 +130,7 @@ export const createTripService = async ({
 // GET ALL TRIPS
 export const getAllTripsService = async () => {
   try {
-    const trips = await Trip.find()
+    const trips = await Trip.find({ isDeleted: { $ne: true } })
       .populate(
         "routeId",
         "sourceCity destinationCity routeDistance routeStatus",
@@ -492,6 +492,7 @@ export const getCompletedTripsService = async () => {
   try {
     const completedTrips = await Trip.find({
       tripStatus: "COMPLETED",
+      isDeleted: { $ne: true },
     })
       .populate(
         "routeId",
@@ -511,4 +512,29 @@ export const getCompletedTripsService = async () => {
   } catch (error) {
     throw error;
   }
+};
+
+// SOFT DELETE A COMPLETED OR CANCELLED TRIP
+// Booking and ticket records remain available for historical lookups.
+export const deleteTripService = async (tripId) => {
+  const trip = await Trip.findById(tripId);
+
+  if (!trip || trip.isDeleted) {
+    const error = new Error("Trip not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (!["COMPLETED", "CANCELLED"].includes(trip.tripStatus)) {
+    const error = new Error(
+      "Only completed or cancelled trips can be deleted",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  trip.isDeleted = true;
+  await trip.save();
+
+  return { tripId: trip._id, isDeleted: true };
 };

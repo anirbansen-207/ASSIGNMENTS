@@ -1,168 +1,105 @@
+
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Grid,
-  Typography,
-} from "@mui/material";
+import { useNavigate, useParams } from "react-router-dom";
+import { Box, Button, Typography } from "@mui/material";
+import { toast } from "sonner";
 
 import {
   getAvailableSeats,
   createBooking,
 } from "../../services/bookingService";
+import BusSeatMap from "../../components/BusSeatMap";
 
 const SeatSelection = () => {
   const navigate = useNavigate();
-
   const { tripId } = useParams();
-
-  // Stores selected seat numbers.
   const [selectedSeats, setSelectedSeats] = useState([]);
 
-  // Get available seats.
   const {
-    data: seats,
+    data,
     isLoading,
     isError,
     error,
   } = useQuery({
     queryKey: ["available-seats", tripId],
     queryFn: () => getAvailableSeats(tripId),
-    enabled: !!tripId,
+    enabled: Boolean(tripId),
   });
 
-  // Create booking mutation.
   const bookingMutation = useMutation({
     mutationFn: createBooking,
-
-    onSuccess: (data) => {
-      console.log("Booking created successfully:", data);
-
-      navigate("/customer/payment", {
-        state: {
-          booking: data,
-        },
-      });
+    onSuccess: (booking) => {
+      navigate("/customer/payment", { state: { booking } });
     },
-
     onError: (error) => {
-      console.error("Booking failed:", error);
+      toast.error(error?.response?.data?.message || "Booking failed");
     },
   });
 
-  if (isLoading) {
-    return <p>Loading available seats...</p>;
-  }
+  if (isLoading) return <Typography>Loading available seats...</Typography>;
 
   if (isError) {
-    return <p>Failed to load available seats: {error.message}</p>;
+    return (
+      <Typography color="error">
+        Failed to load seats: {error?.message}
+      </Typography>
+    );
   }
 
-  // Select / unselect a seat.
+  // Supports both the updated response and the older array response.
+  const seats = Array.isArray(data) ? data : data?.seats || [];
+  const busType = Array.isArray(data) ? null : data?.busType;
+
   const handleSeatClick = (seat) => {
-    // Do not allow already booked seats.
-    if (seat.isBooked) {
+    if (seat.isBooked) return;
+
+    setSelectedSeats((previous) =>
+      previous.includes(seat.seatNumber)
+        ? previous.filter((number) => number !== seat.seatNumber)
+        : [...previous, seat.seatNumber],
+    );
+  };
+
+  const handleContinue = () => {
+    if (!selectedSeats.length) {
+      toast.error("Please select at least one seat or berth");
       return;
     }
 
-    setSelectedSeats((previousSeats) => {
-      if (previousSeats.includes(seat.seatNumber)) {
-        return previousSeats.filter(
-          (seatNumber) => seatNumber !== seat.seatNumber,
-        );
-      }
-
-      return [...previousSeats, seat.seatNumber];
+    bookingMutation.mutate({
+      tripId,
+      seatNumbers: selectedSeats,
     });
   };
 
-  // Create booking.
-  const handleContinue = () => {
-    const bookingData = {
-      tripId,
-      seatNumbers: selectedSeats,
-    };
-
-    console.log("Booking data:", bookingData);
-
-    bookingMutation.mutate(bookingData);
-  };
-
   return (
-    <Box>
+    <Box sx={{ pb: 4 }}>
       <Typography variant="h4" gutterBottom>
         Select Your Seats
       </Typography>
 
-      <Typography variant="body1" sx={{ mb: 3 }}>
-        Select one or more seats for your journey.
+      <Typography color="text.secondary" mb={3}>
+        {busType === "SLEEPER"
+          ? "Choose an available upper or lower berth."
+          : "Choose available seats from the bus layout."}
       </Typography>
 
-      <Grid container spacing={2}>
-        {seats?.map((seat) => {
-          const isSelected = selectedSeats.includes(seat.seatNumber);
+      <BusSeatMap
+        seats={seats}
+        busType={busType}
+        selectedSeats={selectedSeats}
+        onSeatClick={handleSeatClick}
+      />
 
-          return (
-            <Grid item xs={6} sm={4} md={3} lg={2} key={seat.seatNumber}>
-              <Card
-                onClick={() => handleSeatClick(seat)}
-                sx={{
-                  cursor: seat.isBooked ? "not-allowed" : "pointer",
-
-                  border: isSelected ? "2px solid green" : "1px solid #ccc",
-
-                  backgroundColor: seat.isBooked
-                    ? "#eeeeee"
-                    : isSelected
-                      ? "#e8f5e9"
-                      : "#fff",
-
-                  opacity: seat.isBooked ? 0.6 : 1,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" align="center">
-                    {seat.seatNumber}
-                  </Typography>
-
-                  <Typography variant="body2" align="center">
-                    {seat.seatType}
-                  </Typography>
-
-                  <Typography variant="body2" align="center">
-                    ₹{seat.ticketPrice}
-                  </Typography>
-
-                  {seat.isBooked && (
-                    <Typography variant="body2" align="center">
-                      Booked
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6">Selected Seats</Typography>
-
-        <Typography sx={{ mt: 1 }}>
-          {selectedSeats.length > 0
-            ? selectedSeats.join(", ")
-            : "No seats selected"}
-        </Typography>
-      </Box>
+      <Typography sx={{ mt: 3 }}>
+        Selected: {selectedSeats.length ? selectedSeats.join(", ") : "None"}
+      </Typography>
 
       <Button
         variant="contained"
-        sx={{ mt: 3 }}
-        disabled={selectedSeats.length === 0 || bookingMutation.isPending}
+        sx={{ mt: 2 }}
+        disabled={!selectedSeats.length || bookingMutation.isPending}
         onClick={handleContinue}
       >
         {bookingMutation.isPending ? "Creating Booking..." : "Continue"}

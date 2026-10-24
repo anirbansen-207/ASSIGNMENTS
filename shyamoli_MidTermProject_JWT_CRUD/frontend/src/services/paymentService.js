@@ -1,13 +1,22 @@
+
 import axiosInstance from "./axios";
 
-// Create payment for a booking
-export const createPayment = async (paymentData) => {
+// Ask the backend to create a Razorpay order.
+export const createPaymentOrder = async (bookingId) => {
   const response = await axiosInstance.post(
-    "/api/payment/create_payment",
+    "/api/payment/create_order",
+    { bookingId },
+  );
+
+  return response.data.data;
+};
+
+// Ask the backend to verify Razorpay's Checkout response.
+export const verifyPayment = async (paymentData) => {
+  const response = await axiosInstance.post(
+    "/api/payment/verify_payment",
     paymentData,
   );
 
-  // Return the actual payment object
-  // from the backend response.
   return response.data.data;
 };
